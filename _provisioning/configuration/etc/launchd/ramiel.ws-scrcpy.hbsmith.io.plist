@@ -5,9 +5,6 @@
         <key>Label</key>
         <string>ramiel.ws-scrcpy.hbsmith.io</string>
 
-        <key>UserName</key>
-        <string>root</string>
-
         <key>KeepAlive</key>
         <true/>
         <key>StartInterval</key>
