@@ -13,7 +13,7 @@ import { Utils } from '../../Utils';
 import axios from 'axios';
 //
 // TODO: DEV-12826
-import qs from "qs";
+import qs from 'qs';
 //
 
 export class WebsocketProxyOverAdb extends WebsocketProxy {
@@ -74,7 +74,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         //
     }
 
-    // TODO: HBsmith DEV-12387, DEV-12826
+    // TODO: HBsmith DEV-12387, DEV-12826, DEV-13214
     private static async apiCreateSession(ws: WebSocket, udid: string) {
         const host = Config.getInstance().getRamielApiServerEndpoint();
         const api = `/real-devices/${udid}/control/`;
@@ -90,15 +90,18 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             signature: Utils.getSignature(pp, tt),
         });
         const url = `${host}${api}`;
+        const tag = WebsocketProxyOverAdb.TAG;
 
         await axios
             .post(url, data, {
                 headers: hh,
             })
-            .then((resp) => {
-                return resp.status;
+            .then((rr) => {
+                console.log(`[${tag}] success to create session. resp code: ${rr.status}`);
+                return rr.status;
             })
             .catch((error) => {
+                console.error(`[${tag}] failed to create a session. resp code: ${error.response.status}`);
                 let msg = `[${this.TAG}] failed to create a session for ${udid}`;
                 if (!('response' in error)) msg = msg = `undefined response in error`;
                 else if (409 == error.response.status) msg = `사용 중인 장비입니다`;
@@ -130,11 +133,11 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 headers: hh,
                 data: data,
             })
-            .then((response) => {
-                console.log(`[${tag}] success to delete session. resp code: ${response.status}`);
+            .then((rr) => {
+                console.log(`[${tag}] success to delete a session. resp code: ${rr.status}`);
             })
             .catch((error) => {
-                console.error(`[${tag}] failed to delete session. resp code: ${error.response.status}`);
+                console.error(`[${tag}] failed to delete a session. resp code: ${error.response.status}`);
             });
     }
     //
@@ -194,22 +197,37 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         if (!device) {
             return;
         }
-        // send key event code 82 twice for deterministic unlock
-        device.runShellCommandAdbKit('input keyevent 82').then((output) => {
-            console.log(output);
-        });
-        device.runShellCommandAdbKit('input keyevent 82').then((output) => {
-            console.log(output);
-        });
+        // send key event code 82 many times for deterministic unlock
+        for (let i = 0; i < 3; i += 1) {
+            const cc = 'input keyevent 82';
+            device
+                .runShellCommandAdbKit(cc)
+                .then((output) => {
+                    console.log(output ? output : `success to run a command: ${cc}`);
+                })
+                .catch((e) => {
+                    console.error(e);
+                });
+        }
 
         if (this.appKey) {
-            device.runShellCommandAdbKit(`am force-stop '${this.appKey}'`).then((output) => {
-                console.log(output);
-            });
+            let cc = `am force-stop '${this.appKey}'`;
             device
-                .runShellCommandAdbKit(`monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`)
+                .runShellCommandAdbKit(cc)
                 .then((output) => {
-                    console.log(output);
+                    console.log(output ? output : `success to run a command: ${cc}`);
+                })
+                .catch((e) => {
+                    console.error(e);
+                });
+            cc = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
+            device
+                .runShellCommandAdbKit(cc)
+                .then((output) => {
+                    console.log(output ? output : `success to run a command: ${cc}`);
+                })
+                .catch((e) => {
+                    console.error(e);
                 });
         }
     }
@@ -219,19 +237,31 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             return;
         }
 
-        this.apiDeleteSession(this.udid);
-
         const device = this.getDevice();
         if (device) {
             if (this.appKey) {
-                device.runShellCommandAdbKit(`am force-stop '${this.appKey}'`).then((output) => {
-                    console.log(output);
-                });
+                const cc = `am force-stop '${this.appKey}'`;
+                device
+                    .runShellCommandAdbKit(cc)
+                    .then((output) => {
+                        console.log(output ? output : `success to run a command: ${cc}`);
+                    })
+                    .catch((e) => {
+                        console.error(e);
+                    });
             }
-            device.runShellCommandAdbKit('input keyevent 26').then((output) => {
-                console.log(output);
-            });
+            const cc = 'input keyevent 26';
+            device
+                .runShellCommandAdbKit(cc)
+                .then((output) => {
+                    console.log(output ? output : `success to run a command: ${cc}`);
+                })
+                .catch((e) => {
+                    console.error(e);
+                });
         }
+
+        this.apiDeleteSession(this.udid);
     }
 
     //
