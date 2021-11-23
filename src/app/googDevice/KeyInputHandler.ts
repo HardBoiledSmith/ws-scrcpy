@@ -1,6 +1,9 @@
 import { KeyCodeControlMessage } from '../controlMessage/KeyCodeControlMessage';
 import KeyEvent from './android/KeyEvent';
 import { KeyToCodeMap } from './KeyToCodeMap';
+// TODO: DEV-13471
+import { WindowsKeyCodeToKey } from './WindowsKeyCodeToKey';
+//
 
 export interface KeyEventListener {
     onKeyEvent: (event: KeyCodeControlMessage) => void;
@@ -11,10 +14,17 @@ export class KeyInputHandler {
     private static readonly listeners: Set<KeyEventListener> = new Set();
     private static handler = (e: Event): void => {
         const event = e as KeyboardEvent;
-        const keyCode = KeyToCodeMap.get(event.code);
+        // TODO: DEV-13327
+        let keyCode = KeyToCodeMap.get(event.code);
+        if (!keyCode) {
+            const cc = WindowsKeyCodeToKey.get(event.keyCode);
+            if (!cc) return;
+            keyCode = KeyToCodeMap.get(cc);
+        }
         if (!keyCode) {
             return;
         }
+        //
         let action: typeof KeyEvent.ACTION_DOWN | typeof KeyEvent.ACTION_DOWN;
         let repeatCount = 0;
         if (event.type === 'keydown') {
