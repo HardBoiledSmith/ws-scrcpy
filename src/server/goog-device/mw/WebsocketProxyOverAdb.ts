@@ -199,32 +199,42 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         }
         // send key event code 82 many times for deterministic unlock
         for (let i = 0; i < 3; i += 1) {
-            const cc = 'input keyevent 82';
+            const cmdMenu = 'input keyevent 82';
             device
-                .runShellCommandAdbKit(cc)
+                .runShellCommandAdbKit(cmdMenu)
                 .then((output) => {
-                    console.log(output ? output : `success to run a command: ${cc}`);
+                    console.log(output ? output : `success to run a command: ${cmdMenu}`);
                 })
                 .catch((e) => {
                     console.error(e);
                 });
         }
 
+        const cmdHome = 'input keyevent 3';
+        device
+            .runShellCommandAdbKit(cmdHome)
+            .then((output) => {
+                console.log(output ? output : `success to run a command: ${cmdHome}`);
+            })
+            .catch((e) => {
+                console.error(e);
+            });
+
         if (this.appKey) {
-            let cc = `am force-stop '${this.appKey}'`;
+            const cmdAppStop = `am force-stop '${this.appKey}'`;
             device
-                .runShellCommandAdbKit(cc)
+                .runShellCommandAdbKit(cmdAppStop)
                 .then((output) => {
-                    console.log(output ? output : `success to run a command: ${cc}`);
+                    console.log(output ? output : `success to run a command: ${cmdAppStop}`);
                 })
                 .catch((e) => {
                     console.error(e);
                 });
-            cc = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
+            const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
             device
-                .runShellCommandAdbKit(cc)
+                .runShellCommandAdbKit(cmdAppStart)
                 .then((output) => {
-                    console.log(output ? output : `success to run a command: ${cc}`);
+                    console.log(output ? output : `success to run a command: ${cmdAppStart}`);
                 })
                 .catch((e) => {
                     console.error(e);
