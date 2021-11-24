@@ -12,8 +12,9 @@ import { Config } from '../../Config';
 import { Utils } from '../../Utils';
 import axios from 'axios';
 //
-// TODO: DEV-12826
+// TODO: DEV-12826, DEV-13493
 import qs from 'qs';
+import KeyEvent from '../../../app/googDevice/android/KeyEvent';
 //
 
 export class WebsocketProxyOverAdb extends WebsocketProxy {
@@ -171,7 +172,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         return service;
     }
 
-    // TODO: HBsmith DEV-12386
+    // TODO: HBsmith DEV-12386, DEV-13493
     public release(): void {
         this.tearDownTest();
         super.release();
@@ -198,48 +199,48 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             return;
         }
         // send key event code 82 many times for deterministic unlock
-        for (let i = 0; i < 3; i += 1) {
-            const cmdMenu = 'input keyevent 82';
-            device
-                .runShellCommandAdbKit(cmdMenu)
-                .then((output) => {
-                    console.log(output ? output : `success to run a command: ${cmdMenu}`);
-                })
-                .catch((e) => {
-                    console.error(e);
-                });
-        }
-
-        const cmdHome = 'input keyevent 3';
+        const cmdMenu = `input keyevent ${KeyEvent.KEYCODE_MENU}`;
+        const cmdHome = `input keyevent ${KeyEvent.KEYCODE_HOME}`;
         device
-            .runShellCommandAdbKit(cmdHome)
+            .runShellCommandAdbKit(cmdMenu)
             .then((output) => {
-                console.log(output ? output : `success to run a command: ${cmdHome}`);
+                console.log(output ? output : `success to send 1st KEYCODE_MENU: ${cmdMenu}`);
+                return device.runShellCommandAdbKit(cmdMenu);
+            })
+            .then((output) => {
+                console.log(output ? output : `success to send 2nd KEYCODE_MENU: ${cmdMenu}`);
+                return device.runShellCommandAdbKit(cmdMenu);
+            })
+            .then((output) => {
+                console.log(output ? output : `success to send 3rd KEYCODE_MENU: ${cmdMenu}`);
+                return device.runShellCommandAdbKit(cmdHome);
+            })
+            .then((output) => {
+                console.log(output ? output : `success to send KEYCODE_HOME: ${cmdHome}`);
+
+                if (!this.appKey) {
+                    return;
+                }
+
+                const cmdAppStop = `am force-stop '${this.appKey}'`;
+                const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
+
+                device
+                    .runShellCommandAdbKit(cmdAppStop)
+                    .then((output) => {
+                        console.log(output ? output : `success to stop the app: ${cmdAppStop}`);
+                        return device.runShellCommandAdbKit(cmdAppStart);
+                    })
+                    .then((output) => {
+                        console.log(output ? output : `success to start the app: ${cmdAppStart}`);
+                    })
+                    .catch((e) => {
+                        console.error(e);
+                    });
             })
             .catch((e) => {
                 console.error(e);
             });
-
-        if (this.appKey) {
-            const cmdAppStop = `am force-stop '${this.appKey}'`;
-            device
-                .runShellCommandAdbKit(cmdAppStop)
-                .then((output) => {
-                    console.log(output ? output : `success to run a command: ${cmdAppStop}`);
-                })
-                .catch((e) => {
-                    console.error(e);
-                });
-            const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
-            device
-                .runShellCommandAdbKit(cmdAppStart)
-                .then((output) => {
-                    console.log(output ? output : `success to run a command: ${cmdAppStart}`);
-                })
-                .catch((e) => {
-                    console.error(e);
-                });
-        }
     }
 
     private tearDownTest(): void {
@@ -249,22 +250,25 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
 
         const device = this.getDevice();
         if (device) {
-            if (this.appKey) {
-                const cc = `am force-stop '${this.appKey}'`;
-                device
-                    .runShellCommandAdbKit(cc)
-                    .then((output) => {
-                        console.log(output ? output : `success to run a command: ${cc}`);
-                    })
-                    .catch((e) => {
-                        console.error(e);
-                    });
-            }
-            const cc = 'input keyevent 26';
+            const cmdPower = `input keyevent ${KeyEvent.KEYCODE_POWER}`;
             device
-                .runShellCommandAdbKit(cc)
+                .runShellCommandAdbKit(cmdPower)
                 .then((output) => {
-                    console.log(output ? output : `success to run a command: ${cc}`);
+                    console.log(output ? output : `success to run a command: ${cmdPower}`);
+
+                    if (!this.appKey) {
+                        return;
+                    }
+
+                    const cmdStopApp = `am force-stop '${this.appKey}'`;
+                    device
+                        .runShellCommandAdbKit(cmdStopApp)
+                        .then((output) => {
+                            console.log(output ? output : `success to stop app: ${cmdStopApp}`);
+                        })
+                        .catch((e) => {
+                            console.error(e);
+                        });
                 })
                 .catch((e) => {
                     console.error(e);
@@ -273,6 +277,5 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
 
         this.apiDeleteSession(this.udid);
     }
-
     //
 }
