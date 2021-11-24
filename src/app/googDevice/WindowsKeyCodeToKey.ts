@@ -47,7 +47,7 @@ export const WindowsKeyCodeToKey = new Map([
     [WindowsKeyCode.KEY_X, UIEventsCode.KeyX],
     [WindowsKeyCode.KEY_Y, UIEventsCode.KeyY],
     [WindowsKeyCode.KEY_Z, UIEventsCode.KeyZ],
-    [WindowsKeyCode.KEY_SUBTRACT, UIEventsCode.Minus],
+    [WindowsKeyCode.KEY_DASH, UIEventsCode.Minus],
     [WindowsKeyCode.KEY_PERIOD, UIEventsCode.Period],
     [WindowsKeyCode.KEY_QUOTE, UIEventsCode.Quote],
     [WindowsKeyCode.KEY_SEMICOLON, UIEventsCode.Semicolon],
