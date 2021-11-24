@@ -44,9 +44,9 @@ export class Utils {
         }
     }
 
-    // TODO: HBsmith DEV-12387, DEV-12826
+    // TODO: HBsmith DEV-12387, DEV-12826, DEV-13468
     public static getTimestamp(): number {
-        return new Date().getTime() / 1000;
+        return Math.trunc(new Date().getTime() / 1000) - 5;
     }
 
     public static getBaseString(params: Record<string, unknown>): string {
