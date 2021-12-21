@@ -3,6 +3,7 @@ import ScreenInfo from '../ScreenInfo';
 import Rect from '../Rect';
 import Size from '../Size';
 import VideoSettings from '../VideoSettings';
+import { DisplayInfo } from '../DisplayInfo';
 
 export class MsePlayerForQVHack extends MsePlayer {
     public static readonly preferredVideoSettings: VideoSettings = new VideoSettings({
@@ -14,17 +15,17 @@ export class MsePlayerForQVHack extends MsePlayer {
         sendFrameMeta: false,
     });
 
-    constructor(udid: string, tag: HTMLVideoElement) {
-        super(udid, undefined, 'MSE_Player_For_QVHack', tag);
+    constructor(
+        udid: string,
+        displayInfo?: DisplayInfo,
+        name = 'MSE_Player_For_QVHack',
+        tag = MsePlayerForQVHack.createElement(),
+    ) {
+        super(udid, displayInfo, name, tag);
     }
 
-    protected onCanPlayHandler(): void {
-        super.onCanPlayHandler();
-        const tag = this.tag;
-        const { videoWidth, videoHeight } = tag;
-        if (!videoWidth && !videoHeight) {
-            return;
-        }
+    protected handleVideoResize(videoWidth: number, videoHeight: number): void {
+        super.handleVideoResize(videoWidth, videoHeight);
         let w = videoWidth;
         let h = videoHeight;
         if (this.bounds) {
@@ -50,8 +51,8 @@ export class MsePlayerForQVHack extends MsePlayer {
                 }
                 w = boundsWidth | 0;
                 h = boundsHeight | 0;
-                tag.style.maxWidth = `${w}px`;
-                tag.style.maxHeight = `${h}px`;
+                this.tag.style.maxWidth = `${w}px`;
+                this.tag.style.maxHeight = `${h}px`;
             }
         }
         const realScreen = new ScreenInfo(new Rect(0, 0, videoWidth, videoHeight), new Size(w, h), 0);
@@ -69,10 +70,5 @@ export class MsePlayerForQVHack extends MsePlayer {
 
     public setVideoSettings(): void {
         return;
-    }
-
-    public play(): void {
-        super.play();
-        this.tag.oncanplay = this.onVideoCanPlay;
     }
 }

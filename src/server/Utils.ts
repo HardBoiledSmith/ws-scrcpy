@@ -63,4 +63,10 @@ export class Utils {
         return createHmac(algorithm, secretKey).update(baseString).digest('base64');
     }
     //
+
+    // TODO: HBsmith DEV-13549
+    public static getTimeISOString(): string {
+        return new Date().toISOString();
+    }
+    //
 }

@@ -1,8 +1,14 @@
 import * as process from 'process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Configuration, HostItem } from '../types/Configuration';
+import { Configuration, HostItem, ServerItem } from '../types/Configuration';
 import { EnvName } from './EnvName';
+import YAML from 'yaml';
+
+const DEFAULT_PORT = 8000;
+
+const YAML_RE = /^.+\.(yaml|yml)$/i;
+const JSON_RE = /^.+\.(json|js)$/i;
 
 export class Config {
     private static instance?: Config;
@@ -45,27 +51,37 @@ export class Config {
                 }
             }
         }
-        //
+
         const isAbsolute = configPath.startsWith('/');
-        const absolutePath = isAbsolute ? configPath : path.resolve(process.cwd(), configPath);
-        if (!fs.existsSync(absolutePath)) {
-            console.error(`Can't find configuration file "${absolutePath}"`);
-            return;
+        configPath = isAbsolute ? configPath : path.resolve(process.cwd(), configPath);
+        if (!fs.existsSync(configPath)) {
+            throw Error(`Can't find configuration file "${configPath}"`);
         }
-        try {
-            const configString = fs.readFileSync(absolutePath).toString();
-            this.fullConfig = JSON.parse(configString);
-        } catch (e) {
-            console.error(`Failed to load configuration from file "${absolutePath}"`);
-            console.error(`Error: ${e.message}`);
+        //
+
+        if (configPath.match(YAML_RE)) {
+            this.fullConfig = YAML.parse(this.readFile(configPath));
+        } else if (configPath.match(JSON_RE)) {
+            this.fullConfig = JSON.parse(this.readFile(configPath));
+        } else {
+            throw Error(`Unknown file type: ${configPath}`);
         }
     }
 
+    public readFile(pathString: string): string {
+        const isAbsolute = pathString.startsWith('/');
+        const absolutePath = isAbsolute ? pathString : path.resolve(process.cwd(), pathString);
+        if (!fs.existsSync(absolutePath)) {
+            throw Error(`Can't find file "${absolutePath}"`);
+        }
+        return fs.readFileSync(absolutePath).toString();
+    }
+
     public getHostList(): HostItem[] {
-        if (!this.fullConfig.hostList || !this.fullConfig.hostList.length) {
+        if (!this.fullConfig.remoteHostList || !this.fullConfig.remoteHostList.length) {
             return [];
         }
-        return this.fullConfig.hostList.splice(0);
+        return this.fullConfig.remoteHostList.splice(0);
     }
 
     public getRunLocalGoogTracker(): boolean {
@@ -105,7 +121,21 @@ export class Config {
     }
 
     getServerPort(): number {
-        return this.fullConfig.serverPort || 28500;
+        return this.fullConfig.serverPort || 28500 || DEFAULT_PORT;
     }
     //
+
+    public getServers(): ServerItem[] {
+        if (!Array.isArray(this.fullConfig.server)) {
+            return [
+                {
+                    secure: false,
+                    // TODO: HBsmith DEV-13521
+                    port: this.getServerPort(),
+                    //
+                },
+            ];
+        }
+        return this.fullConfig.server;
+    }
 }

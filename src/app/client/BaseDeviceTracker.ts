@@ -18,6 +18,10 @@ export abstract class BaseDeviceTracker<DD extends BaseDeviceDescriptor, TE> ext
     public static readonly ACTION_LIST = 'devicelist';
     public static readonly ACTION_DEVICE = 'device';
     public static readonly HOLDER_ELEMENT_ID = 'devices';
+    public static readonly AttributePrefixInterfaceSelectFor = 'interface_select_for_';
+    public static readonly AttributePlayerFullName = 'data-player-full-name';
+    public static readonly AttributePlayerCodeName = 'data-player-code-name';
+    public static readonly AttributePrefixPlayerFor = 'player_for_';
     protected static instanceId = 0;
     protected title = 'Device list';
     protected tableId = 'base_device_list';
@@ -110,9 +114,12 @@ export abstract class BaseDeviceTracker<DD extends BaseDeviceDescriptor, TE> ext
     protected abstract buildDeviceRow(tbody: Element, device: DD): void;
 
     protected onSocketClose(e: CloseEvent): void {
+        if (this.destroyed) {
+            return;
+        }
         console.log(TAG, `Connection closed: ${e.reason}`);
         setTimeout(() => {
-            this.openNewWebSocket();
+            this.openNewConnection();
         }, 2000);
     }
 
@@ -241,5 +248,20 @@ export abstract class BaseDeviceTracker<DD extends BaseDeviceDescriptor, TE> ext
         if (holder && !holder.children.length) {
             holder.remove();
         }
+    }
+
+    protected supportMultiplexing(): boolean {
+        return true;
+    }
+
+    protected getChannelCode(): string {
+        throw Error('Not implemented. Must override');
+    }
+
+    protected getChannelInitData(): Buffer {
+        const code = this.getChannelCode();
+        const buffer = Buffer.alloc(code.length);
+        buffer.write(code, 'ascii');
+        return buffer;
     }
 }
