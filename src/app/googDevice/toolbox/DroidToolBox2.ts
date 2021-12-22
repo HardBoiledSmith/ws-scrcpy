@@ -5,6 +5,7 @@ import BtnUnlockPng from '../../../public/images/buttons/btn-unlock.png';
 import BtnBackPng from '../../../public/images/buttons/btn-back.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
 import BtnRotatePng from '../../../public/images/buttons/btn-rotate.png';
+import BtnSendText from '../../../public/images/buttons/btn-send-text.png';
 import {KeyCodeControlMessage} from '../../controlMessage/KeyCodeControlMessage';
 import {CommandControlMessage} from '../../controlMessage/CommandControlMessage';
 import {ControlMessage} from '../../controlMessage/ControlMessage';
@@ -33,6 +34,12 @@ const BUTTONS = [
         code: KeyEvent.KEYCODE_BACK,
         icon: BtnBackPng,
         type: 'KeyCodeControlMessage',
+    },
+    {
+        title: 'SendText',
+        code: KeyEvent.KEYCODE_APP_SWITCH,
+        icon: BtnSendText,
+        type: 'CommandControlMessage',
     },
 ];
 
@@ -101,10 +108,27 @@ export class DroidToolBox2 {
                 client.sendMessage(event);
             } else if (element.optional?.type === 'CommandControlMessage') {
                 const title = element.optional?.title;
-                if (title === 'Rotate') {
-                    const action = ControlMessage.TYPE_ROTATE_DEVICE;
-                    const event = new CommandControlMessage(action);
-                    client.sendMessage(event);
+                switch (title) {
+                    case 'Rotate': {
+                        const action = ControlMessage.TYPE_ROTATE_DEVICE;
+                        const event = new CommandControlMessage(action);
+                        client.sendMessage(event);
+                        break;
+                    }
+                    case 'SendText': {
+                        const text = prompt('input text');
+                        if (!text) {
+                            break;
+                        }
+                        client.sendMessage(CommandControlMessage.createSetClipboardCommand(text));
+
+                        const kk = KeyEvent.KEYCODE_PASTE;
+                        let eventPasteKey = new KeyCodeControlMessage(KeyEvent.ACTION_DOWN, kk, 0, 0);
+                        client.sendMessage(eventPasteKey);
+                        eventPasteKey = new KeyCodeControlMessage(KeyEvent.ACTION_UP, kk, 0, 0);
+                        client.sendMessage(eventPasteKey);
+                        break;
+                    }
                 }
             } else {
                 console.log('ERROR: wrong type');
