@@ -10,13 +10,16 @@ window.onload = async function (): Promise<void> {
     const parsedQuery = querystring.parse(hash);
     const action = parsedQuery.action;
 
-    // TODO: HBsmith DEV-12386
+    // TODO: HBsmith DEV-12386, DEV-13549
     const search = location.search.replace('?', '');
     const parsedSearch = querystring.parse(search);
     const appKey = parsedSearch.app_key || null;
+    const userAgent = parsedSearch['user-agent'] || 'unknown';
     if (appKey) {
         parsedQuery['app_key'] = appKey;
-        parsedQuery['ws'] = `${parsedQuery['ws']}&app_key=${appKey}`;
+        parsedQuery['ws'] = `${parsedQuery['ws']}&app_key=${appKey}&user-agent=${userAgent}`;
+    } else {
+        parsedQuery['ws'] = `${parsedQuery['ws']}&user-agent=${userAgent}`;
     }
     //
 
@@ -28,11 +31,21 @@ window.onload = async function (): Promise<void> {
     /// #if USE_H264_CONVERTER
     const { MsePlayer } = await import('./player/MsePlayer');
     StreamClientScrcpy.registerPlayer(MsePlayer);
+
+    const { MsePlayerForQVHack } = await import('./player/MsePlayerForQVHack');
+    StreamClientQVHack.registerPlayer(MsePlayerForQVHack);
     /// #endif
 
     /// #if USE_TINY_H264
     const { TinyH264Player } = await import('./player/TinyH264Player');
     StreamClientScrcpy.registerPlayer(TinyH264Player);
+    /// #endif
+
+    /// #if USE_WEBCODECS
+    const { WebCodecsPlayer } = await import('./player/WebCodecsPlayer');
+    StreamClientScrcpy.registerPlayer(WebCodecsPlayer);
+
+    StreamClientQVHack.registerPlayer(WebCodecsPlayer);
     /// #endif
 
     if (action === StreamClientScrcpy.ACTION && typeof parsedQuery.udid === 'string') {
@@ -62,6 +75,15 @@ window.onload = async function (): Promise<void> {
         return;
     }
     tools.push(DevtoolsClient);
+    /// #endif
+
+    /// #if INCLUDE_FILE_LISTING
+    const { FileListingClient } = await import('./googDevice/client/FileListingClient');
+    if (action === FileListingClient.ACTION) {
+        FileListingClient.start(parsedQuery);
+        return;
+    }
+    tools.push(FileListingClient);
     /// #endif
 
     if (tools.length) {

@@ -9,7 +9,7 @@ import { ControlMessage } from '../../controlMessage/ControlMessage';
 import { ClientsStats, DisplayCombinedInfo } from '../../client/StreamReceiver';
 import { CommandControlMessage } from '../../controlMessage/CommandControlMessage';
 import Util from '../../Util';
-import FilePushHandler from '../FilePushHandler';
+import FilePushHandler from '../filePush/FilePushHandler';
 import DragAndPushLogger from '../DragAndPushLogger';
 import { KeyEventListener, KeyInputHandler } from '../KeyInputHandler';
 import { KeyCodeControlMessage } from '../../controlMessage/KeyCodeControlMessage';
@@ -19,7 +19,7 @@ import { ConfigureScrcpy } from './ConfigureScrcpy';
 import { DeviceTracker } from './DeviceTracker';
 import { ControlCenterCommand } from '../../../common/ControlCenterCommand';
 import { html } from '../../ui/HtmlTag';
-import { FeaturedTouchHandler, TouchHandlerListener } from '../../touchHandler/FeaturedTouchHandler';
+import { FeaturedInteractionHandler, InteractionHandlerListener } from '../../interactionHandler/FeaturedInteractionHandler';
 import DeviceMessage from '../DeviceMessage';
 import { DisplayInfo } from '../../DisplayInfo';
 import { Attribute } from '../../Attribute';
@@ -28,6 +28,7 @@ import { ACTION } from '../../../common/Action';
 import { ParsedUrlQuery } from 'querystring';
 import { StreamReceiverScrcpy } from './StreamReceiverScrcpy';
 import { ParamsDeviceTracker } from '../../../types/ParamsDeviceTracker';
+import { ScrcpyFilePushStream } from '../filePush/ScrcpyFilePushStream';
 
 type StartParams = {
     udid: string;
@@ -41,7 +42,7 @@ const TAG = '[StreamClientScrcpy]';
 
 export class StreamClientScrcpy
     extends BaseClient<ParamsStreamScrcpy, never>
-    implements KeyEventListener, TouchHandlerListener {
+    implements KeyEventListener, InteractionHandlerListener {
     public static ACTION = 'stream';
     private static players: Map<string, PlayerClass> = new Map<string, PlayerClass>();
 
@@ -52,7 +53,7 @@ export class StreamClientScrcpy
     private clientsCount = -1;
     private joinedStream = false;
     private requestedVideoSettings?: VideoSettings;
-    private touchHandler?: FeaturedTouchHandler;
+    private touchHandler?: FeaturedInteractionHandler;
     private droidMoreBox?: DroidMoreBox;
     private player?: BasePlayer;
     private filePushHandler?: FilePushHandler;
@@ -355,7 +356,7 @@ export class StreamClientScrcpy
         this.applyNewVideoSettings(videoSettings, false);
         const element = player.getTouchableElement();
         const logger = new DragAndPushLogger(element);
-        this.filePushHandler = new FilePushHandler(element, this.streamReceiver);
+        this.filePushHandler = new FilePushHandler(element, new ScrcpyFilePushStream(this.streamReceiver));
         this.filePushHandler.addEventListener(logger);
 
         const streamReceiver = this.streamReceiver;
@@ -422,7 +423,7 @@ export class StreamClientScrcpy
         if (this.touchHandler) {
             return;
         }
-        this.touchHandler = new FeaturedTouchHandler(player, this);
+        this.touchHandler = new FeaturedInteractionHandler(player, this);
     }
 
     private applyNewVideoSettings(videoSettings: VideoSettings, saveToStorage: boolean): void {

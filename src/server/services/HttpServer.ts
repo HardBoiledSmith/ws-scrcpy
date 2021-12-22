@@ -1,24 +1,24 @@
 import * as http from 'http';
+import * as https from 'https';
 import path from 'path';
 import { Service } from './Service';
 import { Utils } from '../Utils';
 import express, { Express } from 'express';
-
-// TODO: HBsmith DEV-12387
 import { Config } from '../Config';
-//
 
-const proto = 'http';
-const DEFAULT_PORT = Config.getInstance().getServerPort();
 const DEFAULT_STATIC_DIR = path.join(__dirname, './public');
+
+export type ServerAndPort = {
+    server: https.Server | http.Server;
+    port: number;
+};
 
 export class HttpServer implements Service {
     private static instance: HttpServer;
-    private static PORT = DEFAULT_PORT;
     private static PUBLIC_DIR = DEFAULT_STATIC_DIR;
     private static SERVE_STATIC = true;
-    private server?: http.Server;
-    private app?: Express;
+    private servers: ServerAndPort[] = [];
+    private mainApp?: Express;
 
     protected constructor() {
         // nothing here
@@ -35,13 +35,6 @@ export class HttpServer implements Service {
         return !!this.instance;
     }
 
-    public static setPort(port: number): void {
-        if (HttpServer.instance) {
-            throw Error('Unable to change value after instantiation');
-        }
-        HttpServer.PORT = port;
-    }
-
     public static setPublicDir(dir: string): void {
         if (HttpServer.instance) {
             throw Error('Unable to change value after instantiation');
@@ -56,19 +49,15 @@ export class HttpServer implements Service {
         HttpServer.SERVE_STATIC = enabled;
     }
 
-    public getPort(): number {
-        return HttpServer.PORT;
-    }
-
-    public getServer(): http.Server | undefined {
-        return this.server;
+    public getServers(): ServerAndPort[] {
+        return [...this.servers];
     }
 
     public getName(): string {
-        return `HTTP Server {tcp:${HttpServer.PORT}}`;
+        return `HTTP(s) Server Service`;
     }
 
-    // TODO: HBsmith DEV-11721
+    // TODO: HBsmith DEV-11721, DEV-13549
     public CheckPermission(req: express.Request, res: express.Response, next: express.NextFunction): void {
         if (req.url === '/') {
             res.status(400).send('BAD REQUEST');
@@ -82,6 +71,7 @@ export class HttpServer implements Service {
                 const api = req.query['GET'];
                 const appKey = req.query.hasOwnProperty('app_key') ? req.query['app_key'] : null;
                 const timestamp = Number(req.query['timestamp']);
+                const userAgent = req.query['user-agent'];
                 const signature = req.query['signature'];
 
                 const curTimestamp = Utils.getTimestamp();
@@ -97,11 +87,13 @@ export class HttpServer implements Service {
                         GET: api,
                         app_key: appKey,
                         timestamp: timestamp,
+                        'user-agent': userAgent,
                     };
                 } else {
                     pp = {
                         GET: api,
                         timestamp: timestamp,
+                        'user-agent': userAgent,
                     };
                 }
                 const serverSignature = Utils.getSignature(pp, timestamp);
@@ -120,19 +112,79 @@ export class HttpServer implements Service {
     //
 
     public start(): void {
-        this.app = express();
+        this.mainApp = express();
         if (HttpServer.SERVE_STATIC && HttpServer.PUBLIC_DIR) {
             // TODO: HBsmith DEV-11721
-            this.app.use(this.CheckPermission);
+            this.mainApp.use(this.CheckPermission);
             //
-            this.app.use(express.static(HttpServer.PUBLIC_DIR));
+            this.mainApp.use(express.static(HttpServer.PUBLIC_DIR));
         }
-        this.server = http.createServer(this.app).listen(HttpServer.PORT, () => {
-            Utils.printListeningMsg(proto, HttpServer.PORT);
+        const config = Config.getInstance();
+        config.getServers().forEach((serverItem) => {
+            const { secure, port, redirectToSecure } = serverItem;
+            let proto: string;
+            let server: http.Server | https.Server;
+            if (secure) {
+                if (!serverItem.options) {
+                    throw Error('Must provide option for secure server configuration');
+                }
+                let { key, cert } = serverItem.options;
+                const { keyPath, certPath } = serverItem.options;
+                if (!key) {
+                    if (typeof keyPath !== 'string') {
+                        throw Error('Must provide parameter "key" or "keyPath"');
+                    }
+                    key = config.readFile(keyPath);
+                }
+                if (!cert) {
+                    if (typeof certPath !== 'string') {
+                        throw Error('Must provide parameter "cert" or "certPath"');
+                    }
+                    cert = config.readFile(certPath);
+                }
+                const options = { ...serverItem.options, cert, key };
+                server = https.createServer(options, this.mainApp);
+                proto = 'https';
+            } else {
+                const options = serverItem.options ? { ...serverItem.options } : {};
+                proto = 'http';
+                let currentApp = this.mainApp;
+                let host = '';
+                let port = 443;
+                let doRedirect = false;
+                if (redirectToSecure === true) {
+                    doRedirect = true;
+                } else if (typeof redirectToSecure === 'object') {
+                    doRedirect = true;
+                    if (typeof redirectToSecure.port === 'number') {
+                        port = redirectToSecure.port;
+                    }
+                    if (typeof redirectToSecure.host === 'string') {
+                        host = redirectToSecure.host;
+                    }
+                }
+                if (doRedirect) {
+                    currentApp = express();
+                    currentApp.use(function (req, res) {
+                        const url = new URL(`https://${host ? host : req.headers.host}${req.url}`);
+                        if (port && port !== 443) {
+                            url.port = port.toString();
+                        }
+                        return res.redirect(301, url.toString());
+                    });
+                }
+                server = http.createServer(options, currentApp);
+            }
+            this.servers.push({ server, port });
+            server.listen(port, () => {
+                Utils.printListeningMsg(proto, port);
+            });
         });
     }
 
     public release(): void {
-        this.server?.close();
+        this.servers.forEach((item) => {
+            item.server.close();
+        });
     }
 }
