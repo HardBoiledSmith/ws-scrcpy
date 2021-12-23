@@ -66,7 +66,7 @@ export class HttpServer implements Service {
 
         if (Object.keys(req.query).length != 0) {
             try {
-                const expireTimestampIn = 60;
+                const expireTimestampIn = 300;
 
                 const api = req.query['GET'];
                 const appKey = req.query.hasOwnProperty('app_key') ? req.query['app_key'] : null;
