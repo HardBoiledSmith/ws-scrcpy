@@ -81,7 +81,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         //
     }
 
-    // TODO: HBsmith DEV-12387, DEV-12826, DEV-13214, DEV-13549
+    // TODO: HBsmith DEV-12387, DEV-12826, DEV-13214, DEV-13549, DEV-13718
     private static async apiCreateSession(ws: WS, udid: string, userAgent?: string) {
         const host = Config.getInstance().getRamielApiServerEndpoint();
         const api = `/real-devices/${udid}/control/`;
@@ -116,8 +116,10 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 );
                 let msg = `[${this.TAG}] failed to create a session for ${udid}`;
                 if (!('response' in error)) msg = msg = `undefined response in error`;
-                else if (409 == error.response.status) msg = `사용 중인 장비입니다`;
-                else if (503 == error.response.status) msg = `장비의 연결이 끊어져있습니다`;
+                else if (409 == error.response.status) {
+                    msg = `사용 중인 장비입니다`;
+                    if (userAgent) msg += ` (${userAgent})`;
+                } else if (503 == error.response.status) msg = `장비의 연결이 끊어져있습니다`;
                 ws.close(4900, msg);
                 throw error;
             });
@@ -189,7 +191,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         return service;
     }
 
-    // TODO: HBsmith DEV-12386, DEV-13493, DEV-13549
+    // TODO: HBsmith DEV-12386, DEV-13493, DEV-13549, DEV-13561
     public release(): void {
         this.tearDownTest();
         super.release();
@@ -242,7 +244,8 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     return;
                 }
 
-                const cmdAppStop = `am force-stop '${this.appKey}'`;
+                const cmdAppStop =
+                    'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
                 const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
 
                 device
@@ -250,7 +253,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     .then((output) => {
                         console.log(
                             Utils.getTimeISOString(),
-                            output ? output : `success to stop the app: ${cmdAppStop}`,
+                            output ? output : `success to stop all of the apps: ${cmdAppStop}`,
                         );
                         return device.runShellCommandAdbKit(cmdAppStart);
                     })
@@ -286,15 +289,12 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             .then((output) => {
                 console.log(Utils.getTimeISOString(), output ? output : `success to run a command: ${cmdPower}`);
 
-                if (!this.appKey) {
-                    return;
-                }
-
-                const cmdStopApp = `am force-stop '${this.appKey}'`;
+                const cmdAppStop =
+                    'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
                 device
-                    .runShellCommandAdbKit(cmdStopApp)
+                    .runShellCommandAdbKit(cmdAppStop)
                     .then((output) => {
-                        console.log(Utils.getTimeISOString(), output ? output : `success to stop app: ${cmdStopApp}`);
+                        console.log(Utils.getTimeISOString(), output ? output : `success to stop all of running apps`);
                     })
                     .catch((e) => {
                         console.error(Utils.getTimeISOString(), e);
