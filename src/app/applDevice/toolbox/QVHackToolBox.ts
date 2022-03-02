@@ -4,8 +4,7 @@ import { BasePlayer } from '../../player/BasePlayer';
 import { ToolBoxButton } from '../../toolbox/ToolBoxButton';
 import { ToolBoxElement } from '../../toolbox/ToolBoxElement';
 import { ToolBoxCheckbox } from '../../toolbox/ToolBoxCheckbox';
-import WdaConnection from '../WdaConnection';
-import { StreamClientQVHack } from '../client/StreamClientQVHack';
+import { WdaProxyClient } from '../client/WdaProxyClient';
 
 const BUTTONS = [
     {
@@ -15,6 +14,10 @@ const BUTTONS = [
     },
 ];
 
+export interface StreamClient {
+    getDeviceName(): string;
+}
+
 export class QVHackToolBox extends ToolBox {
     protected constructor(list: ToolBoxElement<any>[]) {
         super(list);
@@ -23,8 +26,8 @@ export class QVHackToolBox extends ToolBox {
     public static createToolBox(
         udid: string,
         player: BasePlayer,
-        client: StreamClientQVHack,
-        wdaConnection: WdaConnection,
+        client: StreamClient,
+        wdaConnection: WdaProxyClient,
         moreBox?: HTMLElement,
     ): QVHackToolBox {
         const playerName = player.getName();
@@ -37,7 +40,7 @@ export class QVHackToolBox extends ToolBox {
                 return;
             }
             const { name } = element.optional;
-            wdaConnection.wdaPressButton(name);
+            wdaConnection.pressButton(name);
         };
         const elements: ToolBoxElement<any>[] = list.map((item) => {
             const button = new ToolBoxButton(item.title, item.icon, {

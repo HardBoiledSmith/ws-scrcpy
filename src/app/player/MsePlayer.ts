@@ -4,7 +4,7 @@ import VideoSettings from '../VideoSettings';
 import Size from '../Size';
 import { DisplayInfo } from '../DisplayInfo';
 // TODO: DEV-12424
-import BtnRotatePng from '../../public/images/hbsmith-logo.png';
+import HBsmithLogo from '../../public/images/hbsmith-logo.png';
 //
 
 interface QualityStats {
@@ -44,7 +44,7 @@ export class MsePlayer extends BasePlayer {
         }
         tag.className = 'video-layer';
         // TODO: DEV-12424
-        tag.poster = BtnRotatePng;
+        tag.poster = HBsmithLogo;
         //
         return tag;
     }
@@ -56,7 +56,7 @@ export class MsePlayer extends BasePlayer {
     private bigBufferSince = -1;
     private aheadOfBufferSince = -1;
     public fpf: number = MsePlayer.DEFAULT_FRAMES_PER_FRAGMENT;
-    public readonly supportsScreenshot: boolean = true;
+    public readonly supportsScreenshot = true;
     private sourceBuffer?: SourceBuffer;
     private waitUntilSegmentRemoved = false;
     private blocks: Block[] = [];
@@ -72,8 +72,6 @@ export class MsePlayer extends BasePlayer {
     private MAX_TIME_TO_RECOVER = 200; // ms
     private MAX_BUFFER = this.isSafari ? 2 : this.isChrome && this.isMac ? 0.9 : 0.2;
     private MAX_AHEAD = -0.2;
-    protected videoHeight = -1;
-    protected videoWidth = -1;
 
     public static isSupported(): boolean {
         return typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(mimeType);
@@ -144,11 +142,6 @@ export class MsePlayer extends BasePlayer {
         this.tag.play();
         this.tag.removeEventListener('canplay', this.onVideoCanPlay);
         this.checkVideoResize();
-    }
-
-    protected handleVideoResize(videoWidth: number, videoHeight: number): void {
-        this.videoWidth = videoWidth;
-        this.videoHeight = videoHeight;
     }
 
     protected calculateMomentumStats(): void {
@@ -256,7 +249,7 @@ export class MsePlayer extends BasePlayer {
         }
         const { videoHeight, videoWidth } = this.tag;
         if (this.videoHeight !== videoHeight || this.videoWidth !== videoWidth) {
-            this.handleVideoResize(videoWidth, videoHeight);
+            this.calculateScreenInfoForBounds(videoWidth, videoHeight);
         }
     };
     cleanSourceBuffer = (): void => {
