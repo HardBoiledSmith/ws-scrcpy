@@ -116,9 +116,18 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
         this.udid = this.params.udid;
         this.wdaProxy = new WdaProxyClient({ ...this.params, action: ACTION.PROXY_WDA });
         this.name = `[${TAG}:${this.udid}]`;
-        // TODO: HBsmith DEV-14062
+        // TODO: HBsmith DEV-14062, 14260
         this.appKey = params.app_key?.toString();
         this.userAgent = params.user_agent?.toString();
+
+        const controlHeaderView = document.createElement('div');
+        controlHeaderView.className = 'control-header';
+
+        const qvhackToolBox2 = QVHackToolBox2.createToolBox(this.wdaProxy);
+        const controlButtons2 = qvhackToolBox2.getHolderElement();
+        controlHeaderView.appendChild(controlButtons2);
+
+        document.body.appendChild(controlHeaderView);
         //
     }
 
@@ -170,8 +179,11 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
             case 'starting':
             case 'started':
             case 'stopped':
-                // TODO: HBsmith DEV-14062
-                if (statusText) statusText.textContent = data.status;
+            case 'error':
+                // TODO: HBsmith DEV-14062, DEV-14260
+                let msg = `[${data.status}]`;
+                if (!!data.text) msg += ` ${data.text}`;
+                if (statusText) statusText.textContent = msg;
                 //
                 this.emit('wda:status', data.status);
                 break;
@@ -227,17 +239,6 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
         }
         this.setTouchListeners(player);
         player.pause();
-
-        // TODO: DEV-14062
-        const controlHeaderView = document.createElement('div');
-        controlHeaderView.className = 'control-header';
-
-        const qvhackToolBox2 = QVHackToolBox2.createToolBox(this.wdaProxy);
-        const controlButtons2 = qvhackToolBox2.getHolderElement();
-        controlHeaderView.appendChild(controlButtons2);
-
-        document.body.appendChild(controlHeaderView);
-        //
 
         const deviceView = document.createElement('div');
         deviceView.className = 'device-view';

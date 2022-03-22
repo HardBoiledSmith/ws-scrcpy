@@ -146,9 +146,19 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                     { action: 'moveTo', options: { x: to.x, y: to.y } },
                     { action: 'release', options: {} },
                 ]);
-            // TODO: HBsmith DEV-14062
+            // TODO: HBsmith DEV-14062, DEV-14620
             case WDAMethod.UNLOCK:
                 return driver.unlock();
+            case WDAMethod.SEND_TEXT:
+                const value = args.text;
+                if (!value) return;
+                return driver.keys(value);
+            case WDAMethod.TERMINATE_APP:
+                const bundleId = args.bundleId;
+                if (!bundleId) return;
+                return driver.isAppInstalled(bundleId).then(() => {
+                    return driver.terminateApp(bundleId);
+                });
             //
             default:
                 return `Unknown command: ${method}`;
@@ -166,7 +176,6 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         try {
             // TODO: DEV-14061
             const data = await WdaRunner.apiGetDevice(this.udid);
-            console.log(data);
             const webDriverAgentUrl = `http://${data['device_host']}:${data['device_port']}`;
             //
             const remoteMjpegServerPort = MJPEG_SERVER_PORT;
@@ -180,9 +189,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 wdaLocalPort: this.wdaLocalPort,
                 usePrebuiltWDA: true,
                 mjpegServerPort: remoteMjpegServerPort,
-                // TODO: DEV-14061
                 webDriverAgentUrl: webDriverAgentUrl,
-                //
             });
             /* TODO: DEV-14061
             await server.driver.wda.xcodebuild.waitForStart(new timing.Timer().start());
@@ -288,12 +295,14 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             return;
         }
 
-        if (!this.appKey) return;
+        if (this.appKey) {
+            const installed = await this.server.driver.isAppInstalled(this.appKey);
+            if (installed) {
+                await this.server.driver.terminateApp(this.appKey);
+            }
+        }
 
-        const installed = await this.server.driver.isAppInstalled(this.appKey);
-        if (!installed) return;
-
-        await this.server.driver.terminateApp(this.appKey);
+        await this.server.driver.mobilePressButton({ name: 'home' });
         await this.server.driver.lock();
     }
     //

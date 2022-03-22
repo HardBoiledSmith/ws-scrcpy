@@ -7,11 +7,20 @@ import { Multiplexer } from '../../../packages/multiplexer/Multiplexer';
 import { ChannelCode } from '../../../common/ChannelCode';
 import Util from '../../../app/Util';
 import { WdaStatus } from '../../../common/WdaStatus';
+import { Config } from '../../Config';
+import { Utils } from '../../Utils';
+import qs from 'qs';
+import axios from 'axios';
 
 export class WebDriverAgentProxy extends Mw {
     public static readonly TAG = 'WebDriverAgentProxy';
     protected name: string;
     private wda?: WdaRunner;
+    // TODO: HBsmith DEV-14620
+    private appKey: string;
+    private userAgent: string;
+    private apiSessionCreated: boolean;
+    //
 
     public static processChannel(ws: Multiplexer, code: string, data: ArrayBuffer): Mw | undefined {
         if (code !== ChannelCode.WDAP) {
@@ -23,12 +32,19 @@ export class WebDriverAgentProxy extends Mw {
         const buffer = Buffer.from(data);
         const length = buffer.readInt32LE(0);
         const udid = Util.utf8ByteArrayToString(buffer.slice(4, 4 + length));
+
         return new WebDriverAgentProxy(ws, udid);
     }
 
     constructor(protected ws: Multiplexer, private readonly udid: string) {
         super(ws);
         this.name = `[${WebDriverAgentProxy.TAG}][udid: ${this.udid}]`;
+        // TODO: HBsmith DEV-14260
+        this.udid = udid;
+        this.appKey = '';
+        this.userAgent = '';
+        this.apiSessionCreated = false;
+        //
     }
 
     private runWda(command: ControlCenterCommand): void {
@@ -36,44 +52,53 @@ export class WebDriverAgentProxy extends Mw {
         const id = command.getId();
         // TODO: HBsmith DEV-14062
         const data = command.getData();
-        const appKey = data.appKey;
-        const userAgent = data.userAgent;
+        this.appKey = data.appKey;
+        this.userAgent = data.userAgent;
         //
 
-        // TODO: apiCreateSession
-        console.log('TODO: use this userAgent', udid, userAgent);
-        //
-
-        if (this.wda) {
-            const message: MessageRunWdaResponse = {
-                id,
-                type: 'run-wda',
-                data: {
-                    udid: udid,
-                    status: 'started',
-                    code: -1,
-                    text: 'WDA already started',
-                },
-            };
-            this.sendMessage(message);
-            return;
-        }
-        this.wda = WdaRunner.getInstance(udid);
-        this.wda.on('status-change', ({ status, code, text }) => {
-            this.onStatusChange(command, status, code, text);
-        });
-        if (this.wda.isStarted()) {
-            this.onStatusChange(command, 'started');
-            // TODO: HBsmith DEV-14062
-            this.wda.setUpTest(appKey);
-            //
-        } else {
-            // TODO: HBsmith DEV-14062
-            this.wda.start().then(() => {
-                this.wda?.setUpTest(appKey);
+        // TODO: HBsmith DEV-14260
+        this.apiCreateSession()
+            .then(() => {
+                if (this.wda) {
+                    const message: MessageRunWdaResponse = {
+                        id,
+                        type: 'run-wda',
+                        data: {
+                            udid: udid,
+                            status: 'started',
+                            code: -1,
+                            text: 'WDA already started',
+                        },
+                    };
+                    this.sendMessage(message);
+                    return;
+                }
+                this.wda = WdaRunner.getInstance(udid);
+                this.wda.on('status-change', ({ status, code, text }) => {
+                    this.onStatusChange(command, status, code, text);
+                });
+                if (this.wda.isStarted()) {
+                    this.onStatusChange(command, 'started');
+                    // TODO: HBsmith DEV-14062, DEV-14260
+                    this.apiSessionCreated = true;
+                    this.wda.setUpTest(this.appKey);
+                    //
+                } else {
+                    // TODO: HBsmith DEV-14062, DEV-14260
+                    this.onStatusChange(command, 'started');
+                    this.apiSessionCreated = true;
+                    this.wda.start().then(() => {
+                        this.wda?.setUpTest(this.appKey);
+                    });
+                    //
+                }
+            })
+            .catch((e) => {
+                this.onStatusChange(command, 'error', -1, e.message);
+                this.ws.close(4900, e.message);
+                console.error(Utils.getTimeISOString(), e);
             });
-            //
-        }
+        //
     }
 
     private onStatusChange = (command: ControlCenterCommand, status: WdaStatus, code?: number, text?: string): void => {
@@ -143,12 +168,99 @@ export class WebDriverAgentProxy extends Mw {
     }
 
     public release(): void {
-        // TODO: HBSmith DEV-14062
+        // TODO: HBSmith DEV-14062, DEV-14260
+        if (!this.apiSessionCreated || !this.udid) {
+            return;
+        }
         this.wda?.tearDownTest();
         //
         super.release();
         if (this.wda) {
             this.wda.release();
         }
+        // TODO: HBsmith DEV-14260
+        this.apiDeleteSession();
+        //
     }
+
+    // TODO: HBsmith DEV-14260
+    private async apiCreateSession() {
+        const host = Config.getInstance().getRamielApiServerEndpoint();
+        const api = `/real-devices/${this.udid}/control/`;
+        const hh = { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf8' };
+        const tt = Utils.getTimestamp();
+        const pp = {
+            POST: api,
+            timestamp: tt,
+            'user-agent': this.userAgent,
+        };
+        const data = qs.stringify({
+            POST: api,
+            timestamp: tt,
+            'user-agent': this.userAgent,
+            signature: Utils.getSignature(pp, tt),
+        });
+        const url = `${host}${api}`;
+        const tag = WebDriverAgentProxy.TAG;
+
+        await axios
+            .post(url, data, {
+                headers: hh,
+            })
+            .then((rr) => {
+                console.log(Utils.getTimeISOString(), `[${tag}] success to create session. resp code: ${rr.status}`);
+            })
+            .catch((error) => {
+                console.error(
+                    Utils.getTimeISOString(),
+                    `[${tag}] failed to create a session. resp code: ${error.response.status}`,
+                );
+                let msg = `[${WebDriverAgentProxy.TAG}] failed to create a session for ${this.udid}`;
+                if (!('response' in error)) msg = msg = `undefined response in error`;
+                else if (409 == error.response.status) {
+                    msg = `사용 중인 장비입니다`;
+                    if (this.userAgent) msg += ` (${this.userAgent})`;
+                } else if (503 == error.response.status) msg = `장비의 연결이 끊어져있습니다`;
+                error.message = msg;
+                throw error;
+            });
+    }
+
+    private apiDeleteSession() {
+        if (!this.udid) return;
+
+        const host = Config.getInstance().getRamielApiServerEndpoint();
+        const api = `/real-devices/${this.udid}/control/`;
+        const hh = { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf8' };
+        const tt = Utils.getTimestamp();
+        const pp = {
+            DELETE: api,
+            timestamp: tt,
+            'user-agent': this.userAgent,
+        };
+        const data = qs.stringify({
+            DELETE: api,
+            timestamp: tt,
+            'user-agent': this.userAgent,
+            signature: Utils.getSignature(pp, tt),
+        });
+        const url = `${host}${api}`;
+        const tag = WebDriverAgentProxy.TAG;
+
+        axios
+            .delete(url, {
+                headers: hh,
+                data: data,
+            })
+            .then((rr) => {
+                console.log(Utils.getTimeISOString(), `[${tag}] success to delete a session. resp code: ${rr.status}`);
+            })
+            .catch((error) => {
+                console.error(
+                    Utils.getTimeISOString(),
+                    `[${tag}] failed to delete a session. resp code: ${error.response.status}`,
+                );
+            });
+    }
+    //
 }
