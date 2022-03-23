@@ -1,4 +1,6 @@
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
+import BtnSendTextPng from '../../../public/images/buttons/btn-send-text.png';
+import BtnTerminateAppPng from '../../../public/images/buttons/btn-terminate-app.png';
 import BtnUnlockPng from '../../../public/images/buttons/btn-unlock.png';
 import { Optional, ToolBoxElement } from '../../toolbox/ToolBoxElement';
 import { WdaProxyClient } from '../client/WdaProxyClient';
@@ -15,6 +17,18 @@ const BUTTONS = [
         name: 'home',
         icon: BtnHomePng,
         type: 'pressButton',
+    },
+    {
+        title: 'Send Text',
+        name: 'sendText',
+        icon: BtnSendTextPng,
+        type: 'sendText',
+    },
+    {
+        title: 'Terminate App',
+        name: 'terminateApp',
+        icon: BtnTerminateAppPng,
+        type: 'terminateApp',
     },
 ];
 
@@ -69,32 +83,32 @@ export class QVHackToolBox2 {
 
     public static createToolBox(wdaConnection: WdaProxyClient): QVHackToolBox2 {
         const list = BUTTONS.slice();
-        const handler1 = <K extends keyof HTMLElementEventMap, T extends HTMLElement>(
-            _: K,
-            element: ToolBoxElement<T>,
-        ) => {
-            if (!element.optional?.name) {
-                return;
-            }
-            const { name } = element.optional;
-            wdaConnection.pressButton(name);
-        };
-        const handler2 = <K extends keyof HTMLElementEventMap, T extends HTMLElement>(
-            _: K,
-            element: ToolBoxElement<T>,
-        ) => {
-            if (!element.optional?.name) {
-                return;
-            }
-            const { name } = element.optional;
-            wdaConnection.pressButton2(name);
-        };
         const elements: ToolBoxElement<any>[] = list.map((item) => {
             const button = new ToolBoxButton2(item.title, item.icon, {
                 name: item.name,
             });
-            if (item.type === 'pressButton') button.addEventListener('click', handler1);
-            else if (item.type === 'unlock') button.addEventListener('click', handler2);
+            switch (item.type) {
+                case 'pressButton':
+                    button.addEventListener('click', (_, element) => {
+                        if (!element.optional?.name) {
+                            return;
+                        }
+                        const { name } = element.optional;
+                        wdaConnection.pressButton(name);
+                    });
+                    break;
+                case 'unlock':
+                case 'sendText':
+                case 'terminateApp':
+                    button.addEventListener('click', (_, element) => {
+                        if (!element.optional?.name) {
+                            return;
+                        }
+                        const { name } = element.optional;
+                        wdaConnection.pressButton2(name);
+                    });
+                    break;
+            }
             return button;
         });
         return new QVHackToolBox2(elements);
