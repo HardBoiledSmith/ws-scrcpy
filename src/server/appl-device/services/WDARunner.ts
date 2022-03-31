@@ -11,7 +11,7 @@ import { WDAMethod } from '../../../common/WDAMethod';
 import { WdaStatus } from '../../../common/WdaStatus';
 // TODO: DEV-14061
 import { Config } from '../../Config';
-import { Utils } from '../../Utils';
+import { Logger, Utils } from '../../Utils';
 import axios from 'axios';
 //
 
@@ -28,8 +28,10 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     public static SHUTDOWN_TIMEOUT = 15000;
     private static servers: Map<string, Server> = new Map();
     private static cachedScreenWidth: Map<string, any> = new Map();
-    //
+    // TODO: HBsmith DEV-14465
     private appKey: string;
+    private logger: Logger;
+    //
 
     public static getInstance(udid: string): WdaRunner {
         let instance = this.instances.get(udid);
@@ -90,8 +92,10 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     constructor(private readonly udid: string) {
         super();
         this.name = `[${WdaRunner.TAG}][udid: ${this.udid}]`;
-        //
+        // TODO: HBsmith DEV-14465
         this.appKey = '';
+        this.logger = new Logger(udid, 'iOS');
+        //
     }
 
     protected lock(): void {
@@ -261,6 +265,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         } catch (error) {
             console.error(
                 Utils.getTimeISOString(),
+                udid,
                 `[${WdaRunner.TAG}]`,
                 `Cannot retrieve the device ${udid}. resp code: ${error.response.status}`,
             );
@@ -270,7 +275,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
 
     public async setUpTest(appKey: string): Promise<void> {
         if (!this.server) {
-            console.error(Utils.getTimeISOString(), 'No Server at setUpTest', this.udid);
+            this.logger.error('No Server at setUpTest', this.udid);
             return;
         }
 
@@ -291,7 +296,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
 
     public async tearDownTest(): Promise<void> {
         if (!this.server) {
-            console.error(Utils.getTimeISOString(), 'No Server at tearDownTest', this.udid);
+            this.logger.error('No Server at tearDownTest', this.udid);
             return;
         }
 
