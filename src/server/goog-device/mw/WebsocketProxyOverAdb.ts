@@ -4,25 +4,28 @@ import WS from 'ws';
 import { RequestParameters } from '../../mw/Mw';
 import { ACTION } from '../../../common/Action';
 
-// TODO: HBsmith DEV-12386
+// TODO: HBsmith DEV-12386, DEV-12387, DEV-12826, DEV-13493, DEV-14465
 import { Device } from '../Device';
-//
-// TODO: HBsmith DEV-12387
 import { Config } from '../../Config';
-import { Utils } from '../../Utils';
+import { Utils, Logger } from '../../Utils';
 import axios from 'axios';
-//
-// TODO: DEV-12826, DEV-13493
 import qs from 'qs';
 import KeyEvent from '../../../app/googDevice/android/KeyEvent';
+import { Multiplexer } from '../../../packages/multiplexer/Multiplexer';
 //
 
 export class WebsocketProxyOverAdb extends WebsocketProxy {
-    // TODO: HBsmith DEV-12386, DEV-13549, HBsmith DEV-12386
+    // TODO: HBsmith DEV-12386, DEV-13549, HBsmith DEV-12386, DEV-14465
     private udid = '';
     private appKey = '';
     private userAgent = '';
     private apiSessionCreated = false;
+    private logger: Logger;
+
+    constructor(ws: WS | Multiplexer, udid: string) {
+        super(ws);
+        this.logger = new Logger(udid, 'Android');
+    }
     //
 
     public static processRequest(ws: WS, params: RequestParameters): WebsocketProxy | undefined {
@@ -99,16 +102,21 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         const url = `${host}${api}`;
         const tag = WebsocketProxyOverAdb.TAG;
 
-        await axios
+        return axios
             .post(url, data, {
                 headers: hh,
             })
             .then((rr) => {
-                console.log(Utils.getTimeISOString(), `[${tag}] success to create session. resp code: ${rr.status}`);
+                console.log(
+                    Utils.getTimeISOString(),
+                    udid,
+                    `[${tag}] success to create session. resp code: ${rr.status}`,
+                );
             })
             .catch((error) => {
                 console.error(
                     Utils.getTimeISOString(),
+                    udid,
                     `[${tag}] failed to create a session. resp code: ${error.response.status}`,
                 );
                 let msg = `[${this.TAG}] failed to create a session for ${udid}`;
@@ -147,13 +155,10 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 data: data,
             })
             .then((rr) => {
-                console.log(Utils.getTimeISOString(), `[${tag}] success to delete a session. resp code: ${rr.status}`);
+                this.logger.info(`[${tag}] success to delete a session. resp code: ${rr.status}`);
             })
             .catch((error) => {
-                console.error(
-                    Utils.getTimeISOString(),
-                    `[${tag}] failed to delete a session. resp code: ${error.response.status}`,
-                );
+                this.logger.error(`[${tag}] failed to delete a session. resp code: ${error.response.status}`);
             });
     }
     //
@@ -166,29 +171,28 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         appKey?: string, // TODO: HBsmith DEV-12386, DEV-13531
         userAgent?: string, // TODO: HBsmith DEV-13549
     ): WebsocketProxyOverAdb {
-        // TODO: HBsmith DEV-12387, DEV-13521
-        const service = new WebsocketProxyOverAdb(ws);
+        // TODO: HBsmith DEV-12387, DEV-13521, DEV-14465
+        const service = new WebsocketProxyOverAdb(ws, udid);
         this.apiCreateSession(ws, udid, userAgent)
             .then(() => {
-                AdbUtils.forward(udid, remote)
-                    .then((port) => {
-                        return service.init(`ws://127.0.0.1:${port}${path ? path : ''}`);
-                    })
-                    .catch((e) => {
-                        const msg = `[${this.TAG}] Failed to start service: ${e.message}`;
-                        console.error(Utils.getTimeISOString(), msg);
-                        ws.close(4005, msg);
-                    });
+                return AdbUtils.forward(udid, remote);
+            })
+            .then((port) => {
+                return service.init(`ws://127.0.0.1:${port}${path ? path : ''}`);
+            })
+            .then(() => {
                 service.setUpTest(udid, appKey, userAgent);
             })
             .catch((e) => {
-                console.error(Utils.getTimeISOString(), e);
+                const msg = `[${this.TAG}] Failed to start service: ${e.message}`;
+                console.error(Utils.getTimeISOString(), udid, msg);
+                ws.close(4005, msg);
             });
         //
         return service;
     }
 
-    // TODO: HBsmith DEV-12386, DEV-13493, DEV-13549, DEV-13561
+    // TODO: HBsmith DEV-12386, DEV-13493, DEV-13549, DEV-13561, DEV-14465
     public release(): void {
         this.tearDownTest();
         super.release();
@@ -217,55 +221,41 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         if (!device) {
             return;
         }
-        // send key event code 82 many times for deterministic unlock
+
         const cmdMenu = `input keyevent ${KeyEvent.KEYCODE_MENU}`;
         const cmdHome = `input keyevent ${KeyEvent.KEYCODE_HOME}`;
+        const cmdAppStop =
+            'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
+        const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
+
         device
             .runShellCommandAdbKit(cmdMenu)
             .then((output) => {
-                console.log(Utils.getTimeISOString(), output ? output : `success to send 1st KEYCODE_MENU: ${cmdMenu}`);
+                this.logger.info(output ? output : `success to send 1st KEYCODE_MENU: ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdMenu);
             })
             .then((output) => {
-                console.log(Utils.getTimeISOString(), output ? output : `success to send 2nd KEYCODE_MENU: ${cmdMenu}`);
+                this.logger.info(output ? output : `success to send 2nd KEYCODE_MENU: ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdMenu);
             })
             .then((output) => {
-                console.log(Utils.getTimeISOString(), output ? output : `success to send 3rd KEYCODE_MENU: ${cmdMenu}`);
+                this.logger.info(output ? output : `success to send 3rd KEYCODE_MENU: ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdHome);
             })
             .then((output) => {
-                console.log(Utils.getTimeISOString(), output ? output : `success to send KEYCODE_HOME: ${cmdHome}`);
-
-                if (!this.appKey) {
-                    return;
-                }
-
-                const cmdAppStop =
-                    'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
-                const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
-
-                device
-                    .runShellCommandAdbKit(cmdAppStop)
-                    .then((output) => {
-                        console.log(
-                            Utils.getTimeISOString(),
-                            output ? output : `success to stop all of the apps: ${cmdAppStop}`,
-                        );
-                        return device.runShellCommandAdbKit(cmdAppStart);
-                    })
-                    .then((output) => {
-                        console.log(
-                            Utils.getTimeISOString(),
-                            output ? output : `success to start the app: ${cmdAppStart}`,
-                        );
-                    })
-                    .catch((e) => {
-                        console.error(Utils.getTimeISOString(), e);
-                    });
+                this.logger.info(output ? output : `success to send KEYCODE_HOME: ${cmdHome}`);
+                if (!this.appKey) return;
+                return device.runShellCommandAdbKit(cmdAppStop);
+            })
+            .then((output) => {
+                this.logger.info(output ? output : `success to stop all of the apps: ${cmdAppStop}`);
+                return device.runShellCommandAdbKit(cmdAppStart);
+            })
+            .then((output) => {
+                this.logger.info(output ? output : `success to start the app: ${cmdAppStart}`);
             })
             .catch((e) => {
-                console.error(Utils.getTimeISOString(), e);
+                this.logger.error(e);
             });
     }
 
@@ -276,29 +266,26 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
 
         const device = this.getDevice();
         if (!device) {
-            console.error(Utils.getTimeISOString(), 'failed to get device at tearDownTest: ', this.udid);
+            this.logger.error(`failed to get device at tearDownTest: ${this.udid}`);
             this.apiDeleteSession(this.udid);
             return;
         }
+
         const cmdPower = `input keyevent ${KeyEvent.KEYCODE_POWER}`;
+        const cmdAppStop =
+            'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
+
         device
             .runShellCommandAdbKit(cmdPower)
             .then((output) => {
-                console.log(Utils.getTimeISOString(), output ? output : `success to run a command: ${cmdPower}`);
-
-                const cmdAppStop =
-                    'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
-                device
-                    .runShellCommandAdbKit(cmdAppStop)
-                    .then((output) => {
-                        console.log(Utils.getTimeISOString(), output ? output : `success to stop all of running apps`);
-                    })
-                    .catch((e) => {
-                        console.error(Utils.getTimeISOString(), e);
-                    });
+                this.logger.info(output ? output : `success to run a command: ${cmdPower}`);
+                return device.runShellCommandAdbKit(cmdAppStop);
+            })
+            .then((output) => {
+                this.logger.info(output ? output : `success to stop all of running apps`);
             })
             .catch((e) => {
-                console.error(Utils.getTimeISOString(), e);
+                this.logger.error(e);
             })
             .finally(() => {
                 this.apiDeleteSession(this.udid);

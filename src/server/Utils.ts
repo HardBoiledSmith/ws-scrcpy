@@ -70,3 +70,23 @@ export class Utils {
     }
     //
 }
+
+// DEV-14465
+export class Logger {
+    private udid: string;
+    private type: string;
+
+    constructor(udid: string, type: string) {
+        this.udid = udid;
+        this.type = type;
+    }
+
+    public info(...args: any[]): void {
+        console.log(Utils.getTimeISOString(), this.type, this.udid, ...args);
+    }
+
+    public error(...args: any[]): void {
+        console.error(Utils.getTimeISOString(), this.type, this.udid, ...args);
+    }
+}
+//
