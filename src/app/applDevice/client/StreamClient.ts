@@ -116,9 +116,12 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
         this.udid = this.params.udid;
         this.wdaProxy = new WdaProxyClient({ ...this.params, action: ACTION.PROXY_WDA });
         this.name = `[${TAG}:${this.udid}]`;
-        // TODO: HBsmith DEV-14062, 14260
-        this.appKey = params.app_key?.toString();
-        this.userAgent = params.user_agent?.toString();
+        // TODO: HBsmith DEV-14062, DEV-14260, DEV-14464
+        // @ts-ignore
+        this.appKey = params['app_key']?.toString();
+        // @ts-ignore
+        this.userAgent = params['user-agent']?.toString();
+        //
 
         const controlHeaderView = document.createElement('div');
         controlHeaderView.className = 'control-header';

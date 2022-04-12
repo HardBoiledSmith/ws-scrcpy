@@ -158,12 +158,13 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 if (!value) return;
                 return driver.keys(value);
             case WDAMethod.TERMINATE_APP:
-                const bundleId = args.bundleId;
-                if (!bundleId) return;
-                return driver.isAppInstalled(bundleId).then(() => {
+                return driver.mobileGetActiveAppInfo().then((appInfo) => {
+                    const bundleId = appInfo['bundleId'];
+                    if (bundleId === 'com.apple.springboard') {
+                        return true;
+                    }
                     return driver.terminateApp(bundleId);
                 });
-            //
             default:
                 return `Unknown command: ${method}`;
         }
@@ -283,6 +284,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         await this.server.driver.mobilePressButton({ name: 'home' });
         await this.server.driver.mobilePressButton({ name: 'home' });
 
+        const appInfo = await this.server.driver.mobileGetActiveAppInfo();
+        const bundleId = appInfo['bundleId'];
+        if (bundleId !== 'com.apple.springboard') {
+            await this.server.driver.terminateApp(bundleId);
+        }
+
         if (!appKey) return;
         this.appKey = appKey;
 
@@ -305,6 +312,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             if (installed) {
                 await this.server.driver.terminateApp(this.appKey);
             }
+        }
+
+        const appInfo = await this.server.driver.mobileGetActiveAppInfo();
+        const bundleId = appInfo['bundleId'];
+        if (bundleId !== 'com.apple.springboard') {
+            await this.server.driver.terminateApp(bundleId);
         }
 
         await this.server.driver.mobilePressButton({ name: 'home' });

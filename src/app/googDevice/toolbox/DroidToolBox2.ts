@@ -3,6 +3,8 @@ import {Optional, ToolBoxElement} from '../../toolbox/ToolBoxElement';
 import {StreamClientScrcpy} from '../client/StreamClientScrcpy';
 import BtnUnlockPng from '../../../public/images/buttons/btn-unlock.png';
 import BtnBackPng from '../../../public/images/buttons/btn-back.png';
+import BtnDoubleUp from '../../../public/images/buttons/btn-double-up.png';
+import BtnDoubleDown from '../../../public/images/buttons/btn-double-down.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
 import BtnRotatePng from '../../../public/images/buttons/btn-rotate.png';
 import BtnSendText from '../../../public/images/buttons/btn-send-text.png';
@@ -37,8 +39,17 @@ const BUTTONS = [
     },
     {
         title: 'SendText',
-        code: KeyEvent.KEYCODE_APP_SWITCH,
         icon: BtnSendText,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'SwipeUp',
+        icon: BtnDoubleUp,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'SwipeDown',
+        icon: BtnDoubleDown,
         type: 'CommandControlMessage',
     },
 ];
@@ -98,10 +109,6 @@ export class DroidToolBox2 {
             type: K,
             element: ToolBoxElement<T>,
         ) => {
-            if (!element.optional?.code || !element.optional?.type) {
-                return;
-            }
-
             const action = type === 'mousedown' ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
             if (element.optional?.type === 'KeyCodeControlMessage') {
                 const event = new KeyCodeControlMessage(action, element.optional?.code, 0, 0);
@@ -127,6 +134,20 @@ export class DroidToolBox2 {
                         client.sendMessage(eventPasteKey);
                         eventPasteKey = new KeyCodeControlMessage(KeyEvent.ACTION_UP, kk, 0, 0);
                         client.sendMessage(eventPasteKey);
+                        break;
+                    }
+                    case 'SwipeUp': {
+                        const event = CommandControlMessage.createAdbControlCommand(
+                            ControlMessage.TYPE_ADB_CONTROL_SWIPE_UP,
+                        );
+                        client.sendMessage(event);
+                        break;
+                    }
+                    case 'SwipeDown': {
+                        const event = CommandControlMessage.createAdbControlCommand(
+                            ControlMessage.TYPE_ADB_CONTROL_SWIPE_DOWN,
+                        );
+                        client.sendMessage(event);
                         break;
                     }
                 }

@@ -4,7 +4,7 @@ import WS from 'ws';
 import { RequestParameters } from '../../mw/Mw';
 import { ACTION } from '../../../common/Action';
 
-// TODO: HBsmith DEV-12386, DEV-12387, DEV-12826, DEV-13493, DEV-14465
+// TODO: HBsmith
 import { Device } from '../Device';
 import { Config } from '../../Config';
 import { Utils, Logger } from '../../Utils';
@@ -12,6 +12,7 @@ import axios from 'axios';
 import qs from 'qs';
 import KeyEvent from '../../../app/googDevice/android/KeyEvent';
 import { Multiplexer } from '../../../packages/multiplexer/Multiplexer';
+import { ControlMessage } from '../../../app/controlMessage/ControlMessage';
 //
 
 export class WebsocketProxyOverAdb extends WebsocketProxy {
@@ -114,17 +115,21 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 );
             })
             .catch((error) => {
-                console.error(
-                    Utils.getTimeISOString(),
-                    udid,
-                    `[${tag}] failed to create a session. resp code: ${error.response.status}`,
-                );
+                let status;
+                try {
+                    status = 'response' in error && 'status' in error.response ? error.response.status : 'unknown1';
+                } catch {
+                    status = error.toString();
+                }
+                console.error(Utils.getTimeISOString(), udid, `[${tag}] failed to create a session: ${status}`);
+
                 let msg = `[${this.TAG}] failed to create a session for ${udid}`;
-                if (!('response' in error)) msg = msg = `undefined response in error`;
-                else if (409 == error.response.status) {
+                if (!('response' in error)) msg = `undefined response in error`;
+                else if (409 === status) {
+                    const userAgent = 'user-agent' in error.response ? error.response.data['user-agent'] : '';
                     msg = `사용 중인 장비입니다`;
                     if (userAgent) msg += ` (${userAgent})`;
-                } else if (503 == error.response.status) msg = `장비의 연결이 끊어져있습니다`;
+                } else if (503 === status) msg = `장비의 연결이 끊어져 있습니다`;
                 ws.close(4900, msg);
                 throw error;
             });
@@ -158,7 +163,13 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 this.logger.info(`[${tag}] success to delete a session. resp code: ${rr.status}`);
             })
             .catch((error) => {
-                this.logger.error(`[${tag}] failed to delete a session. resp code: ${error.response.status}`);
+                let status;
+                try {
+                    status = 'response' in error && 'status' in error.response ? error.response.status : 'unknown1';
+                } catch {
+                    status = error.toString();
+                }
+                this.logger.error(`[${tag}] failed to create a session: ${status}`);
             });
     }
     //
@@ -192,10 +203,54 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         return service;
     }
 
-    // TODO: HBsmith DEV-12386, DEV-13493, DEV-13549, DEV-13561, DEV-14465
+    // TODO: HBsmith DEV-12386 DEV-13493 DEV-13549 DEV-13561 DEV-14465 DEV-14439
     public release(): void {
         this.tearDownTest();
         super.release();
+    }
+
+    protected onSocketMessage(event: WS.MessageEvent): void {
+        try {
+            const [type, value] = event.data;
+            if (type === ControlMessage.TYPE_ADB_CONTROL) {
+                const device = this.getDevice();
+                if (!device) {
+                    return;
+                }
+
+                let isLandscape = false;
+                device
+                    .runShellCommandAdbKit('dumpsys window displays | grep mCurrentRotation | tail -1')
+                    .then((rr) => {
+                        const [oo] = rr.match(/\d+/);
+                        isLandscape = oo === '90' || oo === '270';
+                        return device.runShellCommandAdbKit('wm size | tail -1');
+                    })
+                    .then((rr) => {
+                        let [, ww, hh] = rr.match(/(\d+)x(\d+)/);
+                        if (isLandscape) {
+                            [ww, hh] = [hh, ww];
+                        }
+
+                        const xx = parseInt(ww) / 2;
+                        const y1 = parseInt(hh) / 4;
+                        const y2 = (parseInt(hh) * 4) / 5;
+                        switch (value) {
+                            case ControlMessage.TYPE_ADB_CONTROL_SWIPE_UP:
+                                device.runShellCommandAdbKit(`input swipe ${xx} ${y2} ${xx} ${y1} 500`);
+                                break;
+                            case ControlMessage.TYPE_ADB_CONTROL_SWIPE_DOWN:
+                                device.runShellCommandAdbKit(`input swipe ${xx} ${y1} ${xx} ${y2} 500`);
+                                break;
+                        }
+                    })
+                    .catch((error) => {
+                        this.logger.error(error);
+                    });
+                return;
+            }
+        } catch {}
+        super.onSocketMessage(event);
     }
 
     private getDevice(): Device | null {

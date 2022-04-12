@@ -191,6 +191,18 @@ export class CommandControlMessage extends ControlMessage {
         return { id, state, chunk, fileName, fileSize };
     }
 
+    // TODO: HBsmith DEV-14439
+    public static createAdbControlCommand(value: number): CommandControlMessage {
+        const event = new CommandControlMessage(ControlMessage.TYPE_ADB_CONTROL);
+        let offset = 0;
+        const buffer = new Buffer(1 + 1);
+        offset += buffer.writeUInt8(event.type, offset);
+        buffer.writeUInt8(value, offset);
+        event.buffer = buffer;
+        return event;
+    }
+    //
+
     private buffer?: Buffer;
 
     constructor(readonly type: number) {
