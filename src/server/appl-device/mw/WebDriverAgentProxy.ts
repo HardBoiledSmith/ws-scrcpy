@@ -170,18 +170,25 @@ export class WebDriverAgentProxy extends Mw {
     }
 
     public release(): void {
-        // TODO: HBSmith DEV-14062, DEV-14260
+        // TODO: HBSmith
         if (!this.apiSessionCreated || !this.udid) {
             return;
         }
-        this.wda?.tearDownTest();
-        //
-        super.release();
-        if (this.wda) {
-            this.wda.release();
-        }
-        // TODO: HBsmith DEV-14260
-        this.apiDeleteSession();
+
+        new Promise((resolve) => setTimeout(resolve, 3000))
+            .then(() => {
+                return this.wda?.tearDownTest();
+            })
+            .finally(() => {
+                super.release();
+                if (this.wda) {
+                    this.wda.release();
+                }
+
+                setTimeout(() => {
+                    this.apiDeleteSession();
+                }, 3000);
+            });
         //
     }
 
