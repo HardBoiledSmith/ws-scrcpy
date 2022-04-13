@@ -17,6 +17,11 @@ export class ControlMessage {
     public static TYPE_ROTATE_DEVICE = 11;
     public static TYPE_CHANGE_STREAM_PARAMETERS = 101;
     public static TYPE_PUSH_FILE = 102;
+    // TODO: HBsmith DEV-14439
+    public static TYPE_ADB_CONTROL = 200;
+    public static TYPE_ADB_CONTROL_SWIPE_UP = 0;
+    public static TYPE_ADB_CONTROL_SWIPE_DOWN = 1;
+    //
 
     constructor(readonly type: number) {}
 

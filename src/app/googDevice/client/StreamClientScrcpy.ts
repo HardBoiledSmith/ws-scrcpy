@@ -136,8 +136,28 @@ export class StreamClientScrcpy
         }
 
         const { udid, player: playerName } = this.params;
-        this.startStream({ udid, player, playerName, fitToScreen, videoSettings });
-        this.setBodyClass('stream');
+        // TODO: HBsmith
+        try {
+            this.startStream({ udid, player, playerName, fitToScreen, videoSettings });
+        } catch (error) {
+            let statusText = document.getElementById('control-header-device-status-text');
+            if (!statusText) {
+                const tempErrorView = document.createElement('div');
+                tempErrorView.className = 'control-header';
+
+                statusText = document.createElement('div');
+                statusText.className = 'control-header-device-status-text';
+                statusText.style.width = '100%';
+                tempErrorView.append(statusText);
+                document.body.appendChild(tempErrorView);
+            }
+            if (statusText) {
+                statusText.textContent = error.message;
+            }
+        } finally {
+            this.setBodyClass('stream');
+        }
+        //
     }
 
     public parseParameters(params: ParsedUrlQuery): ParamsStreamScrcpy {
@@ -272,7 +292,7 @@ export class StreamClientScrcpy
         this.touchHandler = undefined;
     };
 
-    public startStream({udid, player, playerName, videoSettings, fitToScreen}: StartParams): void {
+    public startStream({ udid, player, playerName, videoSettings, fitToScreen }: StartParams): void {
         if (!udid) {
             throw Error(`Invalid udid value: "${udid}"`);
         }
