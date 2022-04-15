@@ -44,7 +44,7 @@ export class Utils {
         }
     }
 
-    // TODO: HBsmith DEV-12387, DEV-12826, DEV-13468
+    // TODO: HBsmith
     public static getTimestamp(): number {
         return Math.trunc(new Date().getTime() / 1000) - 5;
     }
@@ -62,11 +62,17 @@ export class Utils {
         baseString = '&&' + baseString;
         return createHmac(algorithm, secretKey).update(baseString).digest('base64');
     }
-    //
 
-    // TODO: HBsmith DEV-13549
     public static getTimeISOString(): string {
         return new Date().toISOString();
+    }
+
+    public static syncDelay(milliseconds: number): void {
+        const start = new Date().getTime();
+        let end = 0;
+        while (end - start < milliseconds) {
+            end = new Date().getTime();
+        }
     }
     //
 }

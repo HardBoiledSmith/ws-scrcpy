@@ -4,6 +4,9 @@ import { ParsedUrlQuery } from 'querystring';
 import { ParamsBase } from '../../types/ParamsBase';
 import Util from '../Util';
 import { Multiplexer } from '../../packages/multiplexer/Multiplexer';
+// TODO: HBsmith
+import { Utils } from '../../server/Utils';
+//
 
 export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient<P, TE> {
     public static ACTION = 'unknown';
@@ -57,9 +60,11 @@ export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient
                     ws = openedMultiplexer.createChannel(this.getChannelInitData());
                 } catch (error) {
                     if (tt >= 2) {
+                        error.message += ` (retries: ${tt})`;
                         throw error;
                     }
                 }
+                Utils.syncDelay(1000);
             }
             if (!ws) {
                 throw new Error('cannot create channel');
@@ -77,8 +82,10 @@ export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient
                     ws = new WebSocket(url);
                 } catch (error) {
                     if (tt >= 2) {
+                        error.message += ` (retries: ${tt})`;
                         throw error;
                     }
+                    Utils.syncDelay(1000);
                 }
             }
             if (!ws) {
