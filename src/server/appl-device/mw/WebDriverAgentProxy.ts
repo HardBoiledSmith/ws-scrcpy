@@ -52,13 +52,13 @@ export class WebDriverAgentProxy extends Mw {
     private runWda(command: ControlCenterCommand): void {
         const udid = command.getUdid();
         const id = command.getId();
-        // TODO: HBsmith DEV-14062
+        // TODO: HBsmith
         const data = command.getData();
         this.appKey = data.appKey;
         this.userAgent = data.userAgent;
         //
 
-        // TODO: HBsmith DEV-14260
+        // TODO: HBsmith
         this.apiCreateSession()
             .then(() => {
                 if (this.wda) {
@@ -67,7 +67,7 @@ export class WebDriverAgentProxy extends Mw {
                         type: 'run-wda',
                         data: {
                             udid: udid,
-                            status: 'started',
+                            status: WdaStatus.STARTED,
                             code: -1,
                             text: 'WDA already started',
                         },
@@ -80,14 +80,14 @@ export class WebDriverAgentProxy extends Mw {
                     this.onStatusChange(command, status, code, text);
                 });
                 if (this.wda.isStarted()) {
-                    this.onStatusChange(command, 'started');
-                    // TODO: HBsmith DEV-14062, DEV-14260
+                    this.onStatusChange(command, WdaStatus.STARTED);
+                    // TODO: HBsmith
                     this.apiSessionCreated = true;
                     this.wda.setUpTest(this.appKey);
                     //
                 } else {
-                    // TODO: HBsmith DEV-14062, DEV-14260
-                    this.onStatusChange(command, 'started');
+                    // TODO: HBsmith
+                    this.onStatusChange(command, WdaStatus.STARTED);
                     this.apiSessionCreated = true;
                     this.wda.start().then(() => {
                         this.wda?.setUpTest(this.appKey);
@@ -96,7 +96,7 @@ export class WebDriverAgentProxy extends Mw {
                 }
             })
             .catch((e) => {
-                this.onStatusChange(command, 'error', -1, e.message);
+                this.onStatusChange(command, WdaStatus.ERROR, -1, e.message);
                 this.ws.close(4900, e.message);
                 this.logger.error(e);
             });

@@ -24,15 +24,15 @@ declare class XCUITestDriver extends BaseDriver {
     public mobilePressButton(args: { name: string }): Promise<any>;
     public stop(): Promise<void>;
     public deleteSession(): Promise<void>;
+    public updateSettings(opts: any): Promise<void>;
+    public keys(value: string): Promise<void>;
     public wda: any;
-    // TODO: HBsmith DEV-14062, DEV-14260
+    // TODO: HBsmith
     public activateApp(bundleId: string): Promise<void>;
     public mobileLaunchApp(args: { bundleId: string }): Promise<any>;
     public mobileGetActiveAppInfo(): Promise<any>;
-    // public launchApp(bundleId: string): Promise<void>; // FIXME: NOT WORKING
     public terminateApp(bundleId: string): Promise<boolean>;
     public isAppInstalled(bundleId: string): Promise<boolean>;
-    public keys(value: string): Promise<void>;
     public lock(): Promise<void>;
     public unlock(): Promise<void>;
     //

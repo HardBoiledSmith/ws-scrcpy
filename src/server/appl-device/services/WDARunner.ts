@@ -3,13 +3,12 @@ import { TypedEmitter } from '../../../common/TypedEmitter';
 import * as portfinder from 'portfinder';
 import { Server, XCUITestDriver } from '../../../types/WdaServer';
 import * as XCUITest from 'appium-xcuitest-driver';
-import { DEVICE_CONNECTIONS_FACTORY } from 'appium-xcuitest-driver/build/lib/device-connections-factory';
 import { WDAMethod } from '../../../common/WDAMethod';
-// TODO: DEV-14061
+// TODO: HBsmith
 // import { timing } from 'appium-support';
 //
 import { WdaStatus } from '../../../common/WdaStatus';
-// TODO: DEV-14061
+// TODO: HBsmith
 import { Config } from '../../Config';
 import { Logger, Utils } from '../../Utils';
 import axios from 'axios';
@@ -28,7 +27,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     public static SHUTDOWN_TIMEOUT = 15000;
     private static servers: Map<string, Server> = new Map();
     private static cachedScreenWidth: Map<string, any> = new Map();
-    // TODO: HBsmith DEV-14465
+    // TODO: HBsmith
     private appKey: string;
     private logger: Logger;
     //
@@ -92,7 +91,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     constructor(private readonly udid: string) {
         super();
         this.name = `[${WdaRunner.TAG}][udid: ${this.udid}]`;
-        // TODO: HBsmith DEV-14465
+        // TODO: HBsmith
         this.appKey = '';
         this.logger = new Logger(udid, 'iOS');
         //
@@ -150,13 +149,13 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                     { action: 'moveTo', options: { x: to.x, y: to.y } },
                     { action: 'release', options: {} },
                 ]);
-            // TODO: HBsmith DEV-14062, DEV-14620
+            case WDAMethod.APPIUM_SETTINGS:
+                return driver.updateSettings(args.options);
+            case WDAMethod.SEND_KEYS:
+                return driver.keys(args.keys);
+            // TODO: HBsmith
             case WDAMethod.UNLOCK:
                 return driver.unlock();
-            case WDAMethod.SEND_TEXT:
-                const value = args.text;
-                if (!value) return;
-                return driver.keys(value);
             case WDAMethod.TERMINATE_APP:
                 return driver.mobileGetActiveAppInfo().then((appInfo) => {
                     const bundleId = appInfo['bundleId'];
@@ -165,6 +164,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                     }
                     return driver.terminateApp(bundleId);
                 });
+            //
             default:
                 return `Unknown command: ${method}`;
         }
@@ -174,12 +174,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         if (this.started || this.starting) {
             return;
         }
-        this.emit('status-change', { status: 'starting' });
+        this.emit('status-change', { status: WdaStatus.STARTING });
         this.starting = true;
         const server = await WdaRunner.getServer(this.udid);
 
         try {
-            // TODO: DEV-14061
+            // TODO: HBsmith
             const data = await WdaRunner.apiGetDevice(this.udid);
             const webDriverAgentUrl = `http://${data['device_host']}:${data['device_port']}`;
             //
@@ -196,7 +196,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 mjpegServerPort: remoteMjpegServerPort,
                 webDriverAgentUrl: webDriverAgentUrl,
             });
-            /* TODO: DEV-14061
+            /* TODO: HBsmith
             await server.driver.wda.xcodebuild.waitForStart(new timing.Timer().start());
             if (server.driver?.wda?.xcodebuild?.xcodebuild) {
                 server.driver.wda.xcodebuild.xcodebuild.on('exit', (code: number) => {
@@ -204,7 +204,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                     this.starting = false;
                     server.driver.deleteSession();
                     delete this.server;
-                    this.emit('status-change', { status: 'stopped', code });
+                    this.emit('status-change', { status: WdaStatus.STOPPED, code });
                     if (this.holders > 0) {
                         this.start();
                     }
@@ -216,14 +216,17 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 throw new Error('xcodebuild process not found');
             }
             */
-            /// #if WDA_RUN_MJPEG_SERVER
+            /// #if USE_WDA_MJPEG_SERVER
+            const { DEVICE_CONNECTIONS_FACTORY } = await import(
+                'appium-xcuitest-driver/build/lib/device-connections-factory'
+            );
             await DEVICE_CONNECTIONS_FACTORY.requestConnection(this.udid, this.mjpegServerPort, {
                 usePortForwarding: true,
                 devicePort: remoteMjpegServerPort,
             });
             /// #endif
             this.started = true;
-            this.emit('status-change', { status: 'started' });
+            this.emit('status-change', { status: WdaStatus.STARTED });
         } catch (e) {
             this.started = false;
             this.starting = false;
@@ -240,7 +243,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         this.unlock();
     }
 
-    // TODO: HBsmith DEV-14061, DEV-14062
+    // TODO: HBsmith
     private static async apiGetDevice(udid: string) {
         const host = Config.getInstance().getRamielApiServerEndpoint();
         const api = `/real-devices/${udid}/`;
@@ -264,12 +267,13 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             });
             return rr.data;
         } catch (error) {
-            console.error(
-                Utils.getTimeISOString(),
-                udid,
-                `[${WdaRunner.TAG}]`,
-                `Cannot retrieve the device ${udid}. resp code: ${error.response.status}`,
-            );
+            let msg;
+            if ('response' in error) {
+                msg = `[${WdaRunner.TAG}] Cannot retrieve the device ${udid}. resp code: ${error.response.status}`;
+            } else {
+                msg = `[${WdaRunner.TAG}] ${error.message}`;
+            }
+            console.error(Utils.getTimeISOString(), udid, msg);
             throw error;
         }
     }

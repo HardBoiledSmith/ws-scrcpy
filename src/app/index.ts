@@ -53,6 +53,8 @@ window.onload = async function (): Promise<void> {
     /// #if INCLUDE_APPL
     {
         const { DeviceTracker } = await import('./applDevice/client/DeviceTracker');
+
+        /// #if USE_QVH_SERVER
         const { StreamClientQVHack } = await import('./applDevice/client/StreamClientQVHack');
 
         DeviceTracker.registerTool(StreamClientQVHack);
@@ -71,8 +73,9 @@ window.onload = async function (): Promise<void> {
             StreamClientQVHack.start(parsedQuery);
             return;
         }
+        /// #endif
 
-        /// #if WDA_RUN_MJPEG_SERVER
+        /// #if USE_WDA_MJPEG_SERVER
         const { StreamClientMJPEG } = await import('./applDevice/client/StreamClientMJPEG');
         DeviceTracker.registerTool(StreamClientMJPEG);
 
