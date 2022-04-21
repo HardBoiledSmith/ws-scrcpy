@@ -59,15 +59,18 @@ export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient
                 try {
                     ws = openedMultiplexer.createChannel(this.getChannelInitData());
                 } catch (error) {
+                    console.error(`Failed to create channel: ${error} (retries: ${tt + 1})`);
                     if (tt >= 2) {
-                        error.message += ` (retries: ${tt})`;
+                        error.message += ` (retries: ${tt + 1})`;
                         throw error;
                     }
+                    Utils.syncDelay(2 ** tt * 1000);
+                    continue;
                 }
-                Utils.syncDelay(1000);
+                break;
             }
             if (!ws) {
-                throw new Error('cannot create channel');
+                throw new Error('Failed to create channel');
             }
             //
             ws.addEventListener('open', this.onSocketOpen.bind(this));
@@ -81,15 +84,18 @@ export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient
                 try {
                     ws = new WebSocket(url);
                 } catch (error) {
+                    console.error(`Failed to create websocket: ${error} (retries: ${tt + 1})`);
                     if (tt >= 2) {
-                        error.message += ` (retries: ${tt})`;
+                        error.message += ` (retries: ${tt + 1})`;
                         throw error;
                     }
-                    Utils.syncDelay(1000);
+                    Utils.syncDelay(2 ** tt * 1000);
+                    continue;
                 }
+                break;
             }
             if (!ws) {
-                throw new Error('cannot create websocket');
+                throw new Error('Failed to create websocket');
             }
             //
             ws.addEventListener('open', this.onSocketOpen.bind(this));
