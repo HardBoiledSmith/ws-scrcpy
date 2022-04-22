@@ -284,14 +284,22 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             return;
         }
 
-        await this.server.driver.mobilePressButton({ name: 'home' });
-        await this.server.driver.mobilePressButton({ name: 'home' });
-        await this.server.driver.mobilePressButton({ name: 'home' });
+        await this.server.driver.mobilePressButton({ name: 'home' }).then(() => {
+            this.logger.info(`success to press button (1/3): home`);
+        });
+        await this.server.driver.mobilePressButton({ name: 'home' }).then(() => {
+            this.logger.info(`success to press button (2/3): home`);
+        });
+        await this.server.driver.mobilePressButton({ name: 'home' }).then(() => {
+            this.logger.info(`success to press button (3/3): home`);
+        });
 
         const appInfo = await this.server.driver.mobileGetActiveAppInfo();
         const bundleId = appInfo['bundleId'];
         if (bundleId !== 'com.apple.springboard') {
-            await this.server.driver.terminateApp(bundleId);
+            await this.server.driver.terminateApp(bundleId).then(() => {
+                this.logger.info(`success to stop the app: ${bundleId}`);
+            });
         }
 
         if (!appKey) return;
@@ -301,8 +309,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         if (!installed) return;
 
         await this.server.driver.terminateApp(appKey);
-        await this.server.driver.mobileLaunchApp({ bundleId: appKey });
-        await this.server.driver.activateApp(appKey);
+        await this.server.driver.mobileLaunchApp({ bundleId: appKey }).then(() => {
+            this.logger.info(`success to launch the app: ${bundleId}`);
+        });
+        await this.server.driver.activateApp(appKey).then(() => {
+            this.logger.info(`success to activate the app: ${bundleId}`);
+        });
     }
 
     public async tearDownTest(): Promise<void> {
@@ -314,14 +326,18 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         if (this.appKey) {
             const installed = await this.server.driver.isAppInstalled(this.appKey);
             if (installed) {
-                await this.server.driver.terminateApp(this.appKey);
+                await this.server.driver.terminateApp(this.appKey).then(() => {
+                    this.logger.info(`success to stop the app using given the appKey: ${bundleId}`);
+                });
             }
         }
 
         const appInfo = await this.server.driver.mobileGetActiveAppInfo();
         const bundleId = appInfo['bundleId'];
         if (bundleId !== 'com.apple.springboard') {
-            await this.server.driver.terminateApp(bundleId);
+            await this.server.driver.terminateApp(bundleId).then(() => {
+                this.logger.info(`success to stop the activated app: ${bundleId}`);
+            });
         }
 
         await this.server.driver.mobilePressButton({ name: 'home' });

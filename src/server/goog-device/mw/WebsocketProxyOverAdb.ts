@@ -290,15 +290,15 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         device
             .runShellCommandAdbKit(cmdMenu)
             .then((output) => {
-                this.logger.info(output ? output : `success to send 1st KEYCODE_MENU: ${cmdMenu}`);
+                this.logger.info(output ? output : `success to send KEYCODE_MENU (1/3): ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdMenu);
             })
             .then((output) => {
-                this.logger.info(output ? output : `success to send 2nd KEYCODE_MENU: ${cmdMenu}`);
+                this.logger.info(output ? output : `success to send KEYCODE_MENU (2/3): ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdMenu);
             })
             .then((output) => {
-                this.logger.info(output ? output : `success to send 3rd KEYCODE_MENU: ${cmdMenu}`);
+                this.logger.info(output ? output : `success to send KEYCODE_MENU (3/3): ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdHome);
             })
             .then((output) => {
