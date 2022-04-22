@@ -310,10 +310,10 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
 
         await this.server.driver.terminateApp(appKey);
         await this.server.driver.mobileLaunchApp({ bundleId: appKey }).then(() => {
-            this.logger.info(`success to launch the app: ${bundleId}`);
+            this.logger.info(`success to launch the app: ${appKey}`);
         });
         await this.server.driver.activateApp(appKey).then(() => {
-            this.logger.info(`success to activate the app: ${bundleId}`);
+            this.logger.info(`success to activate the app: ${appKey}`);
         });
     }
 
@@ -327,7 +327,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             const installed = await this.server.driver.isAppInstalled(this.appKey);
             if (installed) {
                 await this.server.driver.terminateApp(this.appKey).then(() => {
-                    this.logger.info(`success to stop the app using given the appKey: ${bundleId}`);
+                    this.logger.info(`success to stop the app using given the appKey: ${this.appKey}`);
                 });
             }
         }
