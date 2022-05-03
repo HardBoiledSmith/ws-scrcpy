@@ -52,22 +52,24 @@ export class WebDriverAgentProxy extends Mw {
     private runWda(command: ControlCenterCommand): void {
         const udid = command.getUdid();
         const id = command.getId();
-        // TODO: HBsmith DEV-14062
+        // TODO: HBsmith
         const data = command.getData();
         this.appKey = data.appKey;
         this.userAgent = data.userAgent;
         //
 
-        // TODO: HBsmith DEV-14260
+        // TODO: HBsmith
         this.apiCreateSession()
             .then(() => {
+                this.apiSessionCreated = true;
+                //
                 if (this.wda) {
                     const message: MessageRunWdaResponse = {
                         id,
                         type: 'run-wda',
                         data: {
                             udid: udid,
-                            status: 'started',
+                            status: WdaStatus.STARTED,
                             code: -1,
                             text: 'WDA already started',
                         },
@@ -80,15 +82,13 @@ export class WebDriverAgentProxy extends Mw {
                     this.onStatusChange(command, status, code, text);
                 });
                 if (this.wda.isStarted()) {
-                    this.onStatusChange(command, 'started');
-                    // TODO: HBsmith DEV-14062, DEV-14260
-                    this.apiSessionCreated = true;
+                    this.onStatusChange(command, WdaStatus.STARTED);
+                    // TODO: HBsmith
                     this.wda.setUpTest(this.appKey);
                     //
                 } else {
-                    // TODO: HBsmith DEV-14062, DEV-14260
-                    this.onStatusChange(command, 'started');
-                    this.apiSessionCreated = true;
+                    // TODO: HBsmith
+                    this.onStatusChange(command, WdaStatus.STARTED);
                     this.wda.start().then(() => {
                         this.wda?.setUpTest(this.appKey);
                     });
@@ -96,7 +96,7 @@ export class WebDriverAgentProxy extends Mw {
                 }
             })
             .catch((e) => {
-                this.onStatusChange(command, 'error', -1, e.message);
+                this.onStatusChange(command, WdaStatus.ERROR, -1, e.message);
                 this.ws.close(4900, e.message);
                 this.logger.error(e);
             });
@@ -212,7 +212,7 @@ export class WebDriverAgentProxy extends Mw {
         const url = `${host}${api}`;
         const tag = WebDriverAgentProxy.TAG;
 
-        await axios
+        return await axios
             .post(url, data, {
                 headers: hh,
             })
@@ -231,10 +231,10 @@ export class WebDriverAgentProxy extends Mw {
                 let msg = `[${WebDriverAgentProxy.TAG}] failed to create a session for ${this.udid}`;
                 if (!('response' in error)) msg = `undefined response in error`;
                 else if (409 === status) {
-                    const userAgent = 'user-agent' in error.response ? error.response.data['user-agent'] : '';
+                    const userAgent = 'user-agent' in error.response.data ? error.response.data['user-agent'] : '';
                     msg = `사용 중인 장비입니다`;
                     if (userAgent) msg += ` (${userAgent})`;
-                } else if (503 === status) msg = `장비의 연결이 끊어져 있습니다`;
+                } else if (410 === status) msg = `장비의 연결이 끊어져 있습니다`;
                 error.message = msg;
                 throw error;
             });
