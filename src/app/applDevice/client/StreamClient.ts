@@ -6,8 +6,8 @@ import ScreenInfo from '../../ScreenInfo';
 import { WdaProxyClient } from './WdaProxyClient';
 import { ParsedUrlQuery, ParsedUrlQueryInput } from 'querystring';
 import { ACTION } from '../../../common/Action';
-import { QVHackMoreBox } from '../toolbox/QVHackMoreBox';
-import { QVHackToolBox } from '../toolbox/QVHackToolBox';
+import { ApplMoreBox } from '../toolbox/ApplMoreBox';
+import { ApplToolBox } from '../toolbox/ApplToolBox';
 import Size from '../../Size';
 import Util from '../../Util';
 import ApplDeviceDescriptor from '../../../types/ApplDeviceDescriptor';
@@ -102,7 +102,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
     protected name: string;
     protected udid: string;
     protected deviceName = '';
-    protected videoWrapper?: HTMLElement;
+    protected videoWrapper: HTMLElement;
     protected deviceView?: HTMLDivElement;
     protected moreBox?: HTMLElement;
     protected player?: BasePlayer;
@@ -116,7 +116,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
         this.udid = this.params.udid;
         this.wdaProxy = new WdaProxyClient({ ...this.params, action: ACTION.PROXY_WDA });
         this.name = `[${TAG}:${this.udid}]`;
-        // TODO: HBsmith DEV-14062, DEV-14260, DEV-14464
+        // TODO: HBsmith
         // @ts-ignore
         this.appKey = params['app_key']?.toString();
         // @ts-ignore
@@ -132,6 +132,9 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
 
         document.body.appendChild(controlHeaderView);
         //
+        this.videoWrapper = document.createElement('div');
+        this.videoWrapper.className = `video`;
+        this.setWdaStatusNotification(WdaStatus.STARTING);
     }
 
     public get action(): string {
@@ -163,27 +166,30 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
     protected async runWebDriverAgent(): Promise<void> {
         if (!this.waitForWda) {
             this.wdaProxy.on('wda-status', this.handleWdaStatus);
+            // TODO: HBsmith
             this.waitForWda = this.wdaProxy
                 .runWebDriverAgent(this.appKey, this.userAgent)
                 .then(this.handleWdaStatus)
                 .finally(() => {
                     this.videoWrapper?.classList.remove(WAIT_CLASS);
                 });
+            //
         }
         return this.waitForWda;
     }
 
     protected handleWdaStatus = (message: MessageRunWdaResponse): void => {
-        // TODO: HBsmith DEV-14062
+        // TODO: HBsmith
         const statusText = document.getElementById('control-header-device-status-text');
         //
         const data = message.data;
+        this.setWdaStatusNotification(data.status);
         switch (data.status) {
-            case 'starting':
-            case 'started':
-            case 'stopped':
-            case 'error':
-                // TODO: HBsmith DEV-14062, DEV-14260
+            case WdaStatus.STARTING:
+            case WdaStatus.STARTED:
+            case WdaStatus.STOPPED:
+            case WdaStatus.ERROR:
+                // TODO: HBsmith
                 let msg = `[${data.status}]`;
                 if (!!data.text) msg += ` ${data.text}`;
                 if (statusText) statusText.textContent = msg;
@@ -191,7 +197,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
                 this.emit('wda:status', data.status);
                 break;
             default:
-                // TODO: HBsmith DEV-14062
+                // TODO: HBsmith
                 if (statusText) statusText.textContent = status;
                 //
                 throw Error(`Unknown WDA status: '${status}'`);
@@ -229,6 +235,19 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
         this.player?.stop();
     }
 
+    public setWdaStatusNotification(status: WdaStatus): void {
+        // TODO: use proper notification instead of `cursor: wait`
+        if (status === WdaStatus.STARTED || status === WdaStatus.STOPPED) {
+            this.videoWrapper.classList.remove(WAIT_CLASS);
+        } else {
+            this.videoWrapper.classList.add(WAIT_CLASS);
+        }
+    }
+
+    protected createMoreBox(udid: string, player: BasePlayer): ApplMoreBox {
+        return new ApplMoreBox(udid, player, this.wdaProxy);
+    }
+
     protected startStream(inputPlayer?: BasePlayer): void {
         const { udid, player: playerName } = this.params;
         if (!udid) {
@@ -246,22 +265,16 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
         const deviceView = document.createElement('div');
         deviceView.className = 'device-view';
 
-        const qvhackMoreBox = new QVHackMoreBox(udid, player);
-        qvhackMoreBox.setOnStop(this);
-        const moreBox: HTMLElement = qvhackMoreBox.getHolderElement();
-        const qvhackToolBox = QVHackToolBox.createToolBox(udid, player, this, this.wdaProxy, moreBox);
-        const controlButtons = qvhackToolBox.getHolderElement();
+        const applMoreBox = this.createMoreBox(udid, player);
+        applMoreBox.setOnStop(this);
+        const moreBox: HTMLElement = applMoreBox.getHolderElement();
+        const applToolBox = ApplToolBox.createToolBox(udid, player, this, this.wdaProxy, moreBox);
+        const controlButtons = applToolBox.getHolderElement();
         deviceView.appendChild(controlButtons);
-        const video = document.createElement('div');
-        // TODO: HBsmith DEV-14062
-        // video.className = `video ${WAIT_CLASS}`;
-        video.classList.add('video');
-        //
-        deviceView.appendChild(video);
+        deviceView.appendChild(this.videoWrapper);
         deviceView.appendChild(moreBox);
-        player.setParent(video);
+        player.setParent(this.videoWrapper);
         player.on('input-video-resize', this.onInputVideoResize);
-        this.videoWrapper = video;
 
         document.body.appendChild(deviceView);
         const bounds = this.getMaxSize(controlButtons);

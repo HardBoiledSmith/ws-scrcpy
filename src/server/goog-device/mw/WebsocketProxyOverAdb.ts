@@ -126,10 +126,10 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 let msg = `[${this.TAG}] failed to create a session for ${udid}`;
                 if (!('response' in error)) msg = `undefined response in error`;
                 else if (409 === status) {
-                    const userAgent = 'user-agent' in error.response ? error.response.data['user-agent'] : '';
+                    const userAgent = 'user-agent' in error.response.data ? error.response.data['user-agent'] : '';
                     msg = `사용 중인 장비입니다`;
                     if (userAgent) msg += ` (${userAgent})`;
-                } else if (503 === status) msg = `장비의 연결이 끊어져 있습니다`;
+                } else if (410 === status) msg = `장비의 연결이 끊어져 있습니다`;
                 ws.close(4900, msg);
                 throw error;
             });
@@ -192,7 +192,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 return service.init(`ws://127.0.0.1:${port}${path ? path : ''}`);
             })
             .then(() => {
-                service.setUpTest(udid, appKey, userAgent);
+                return service.setUpTest(udid, appKey, userAgent);
             })
             .catch((e) => {
                 const msg = `[${this.TAG}] Failed to start service: ${e.message}`;
@@ -264,7 +264,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         return new Device(this.udid, 'device');
     }
 
-    private setUpTest(udid: string, appKey?: string, userAgent?: string): void {
+    private async setUpTest(udid: string, appKey?: string, userAgent?: string): Promise<void> {
         this.apiSessionCreated = true;
         if (udid) {
             this.udid = udid;
@@ -287,7 +287,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
         const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
 
-        device
+        return device
             .runShellCommandAdbKit(cmdMenu)
             .then((output) => {
                 this.logger.info(output ? output : `success to send 1st KEYCODE_MENU: ${cmdMenu}`);

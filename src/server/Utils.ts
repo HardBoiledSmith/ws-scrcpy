@@ -1,6 +1,9 @@
 import * as os from 'os';
+// TODO: HBsmith
 import qs from 'qs';
 import { createHmac } from 'crypto';
+import { execSync } from 'child_process';
+//
 
 export class Utils {
     public static printListeningMsg(proto: string, port: number): void {
@@ -44,7 +47,7 @@ export class Utils {
         }
     }
 
-    // TODO: HBsmith DEV-12387, DEV-12826, DEV-13468
+    // TODO: HBsmith
     public static getTimestamp(): number {
         return Math.trunc(new Date().getTime() / 1000) - 5;
     }
@@ -62,16 +65,29 @@ export class Utils {
         baseString = '&&' + baseString;
         return createHmac(algorithm, secretKey).update(baseString).digest('base64');
     }
-    //
 
-    // TODO: HBsmith DEV-13549
     public static getTimeISOString(): string {
         return new Date().toISOString();
+    }
+
+    public static async getProcessId(query: string): Promise<number | undefined> {
+        let cmd = '';
+        if (['darwin', 'linux'].includes(process.platform)) {
+            cmd = `pgrep -f ${query} | head -1`;
+        } else {
+            throw new Error('Unsupported platform');
+        }
+
+        try {
+            return Number(execSync(cmd).toString().trim());
+        } catch {
+            return undefined;
+        }
     }
     //
 }
 
-// DEV-14465
+// TODO: HBsmith
 export class Logger {
     private udid: string;
     private type: string;

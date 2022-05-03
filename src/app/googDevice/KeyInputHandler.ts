@@ -14,7 +14,7 @@ export class KeyInputHandler {
     private static readonly listeners: Set<KeyEventListener> = new Set();
     private static handler = (e: Event): void => {
         const event = e as KeyboardEvent;
-        // TODO: DEV-13327
+        // TODO: DEV-13471
         let keyCode = KeyToCodeMap.get(event.code);
         if (!keyCode) {
             const cc = WindowsKeyCodeToKey.get(event.keyCode);

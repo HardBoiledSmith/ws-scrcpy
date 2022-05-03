@@ -1,1 +1,8 @@
-export type WdaStatus = 'starting' | 'started' | 'stopped' | 'error'; // TODO: HBsmith DEV-14260
+export enum WdaStatus {
+    STARTING = 'STARTING',
+    STARTED = 'STARTED',
+    STOPPED = 'STOPPED',
+    // TODO: HBsmith
+    ERROR = 'ERROR',
+    //
+}
