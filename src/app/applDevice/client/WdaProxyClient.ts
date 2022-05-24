@@ -211,9 +211,7 @@ export class WdaProxyClient
     }
 
     public async sendKeys(keys: string): Promise<void> {
-        return this.requestWebDriverAgent(WDAMethod.SEND_KEYS, {
-            keys,
-        });
+        return this.requestWebDriverAgent(WDAMethod.SEND_KEYS, { keys });
     }
 
     public async pressButton(name: string): Promise<void> {
