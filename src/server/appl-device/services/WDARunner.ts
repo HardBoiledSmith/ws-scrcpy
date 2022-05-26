@@ -31,7 +31,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     private appKey: string;
     private logger: Logger;
 
-    private wdaEvents: Array<Object> = [];
+    private wdaEvents: Array<unknown> = [];
     private wdaEventInAction = false;
     private wdaProcessId: number | undefined;
     //
@@ -115,7 +115,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 return;
             }
             this.wdaEventInAction = true;
-            (<Function> ev)(driver).finally(() => {
+            (<Function>ev)(driver).finally(() => {
                 this.wdaEventInAction = false;
             });
         }, 100);
@@ -163,7 +163,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             case WDAMethod.GET_SCREEN_WIDTH:
                 return WdaRunner.getScreenWidth(this.udid, driver);
             case WDAMethod.CLICK:
-                const [ x, y ] = [ args.x, args.y ];
+                const [x, y] = [args.x, args.y];
                 this.wdaEvents.push((driver: XCUITestDriver) => {
                     return driver.performTouch([{ action: 'tap', options: { x: x, y: y } }]);
                 });
@@ -177,7 +177,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             case WDAMethod.SCROLL:
                 const { from, to } = args;
                 this.wdaEvents.push((driver: XCUITestDriver) => {
-                        return driver.performTouch([
+                    return driver.performTouch([
                         { action: 'press', options: { x: from.x, y: from.y } },
                         { action: 'wait', options: { ms: 500 } },
                         { action: 'moveTo', options: { x: to.x, y: to.y } },
@@ -243,7 +243,6 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 mjpegServerPort: remoteMjpegServerPort,
                 // TODO: HBsmith
                 webDriverAgentUrl: webDriverAgentUrl,
-                waitForQuiescence: false,
                 //
             });
             // TODO: HBsmith
@@ -362,7 +361,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     public async tearDownTest(): Promise<void> {
         this.wdaEventInAction = false;
         this.wdaEvents = [];
-        
+
         if (!this.server) {
             this.logger.error('No Server at tearDownTest', this.udid);
             return;
