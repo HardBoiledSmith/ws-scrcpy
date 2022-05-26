@@ -96,6 +96,7 @@ const front: webpack.Configuration = {
     plugins: [
         new HtmlWebpackPlugin({
             template: path.join(PROJECT_ROOT, '/src/public/index.html'),
+            favicon: path.join(PROJECT_ROOT, '/src/public/favicon.ico'),
             inject: 'head',
         }),
         new MiniCssExtractPlugin(),
