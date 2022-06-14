@@ -189,6 +189,8 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
             case WdaStatus.STARTED:
             case WdaStatus.STOPPED:
             case WdaStatus.ERROR:
+            case WdaStatus.IN_ACTION:
+            case WdaStatus.END_ACTION:
                 // TODO: HBsmith
                 let msg = `[${data.status}]`;
                 if (!!data.text) msg += ` ${data.text}`;
@@ -237,7 +239,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
 
     public setWdaStatusNotification(status: WdaStatus): void {
         // TODO: use proper notification instead of `cursor: wait`
-        if (status === WdaStatus.STARTED || status === WdaStatus.STOPPED) {
+        if ([WdaStatus.STARTED, WdaStatus.STOPPED, WdaStatus.END_ACTION].includes(status)) {
             this.videoWrapper.classList.remove(WAIT_CLASS);
         } else {
             this.videoWrapper.classList.add(WAIT_CLASS);

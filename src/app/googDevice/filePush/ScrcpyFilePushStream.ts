@@ -20,6 +20,12 @@ export class ScrcpyFilePushStream extends FilePushStream {
         return (type && ALLOWED_TYPES.includes(type)) || (!type && ALLOWED_NAME_RE.test(name));
     }
 
+    // TODO: HBsmith
+    public sendEvent(message: CommandControlMessage): void {
+        this.streamReceiver.sendEvent(message);
+    }
+    //
+
     public sendEventAppend({ id, chunk }: { id: number; chunk: Uint8Array }): void {
         const appendParams = { id, chunk, state: FilePushState.APPEND };
         this.streamReceiver.sendEvent(CommandControlMessage.createPushFileCommand(appendParams));

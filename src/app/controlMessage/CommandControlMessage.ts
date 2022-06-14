@@ -193,13 +193,31 @@ export class CommandControlMessage extends ControlMessage {
         return { id, state, chunk, fileName, fileSize };
     }
 
-    // TODO: HBsmith DEV-14439
+    // TODO: HBsmith
     public static createAdbControlCommand(value: number): CommandControlMessage {
         const event = new CommandControlMessage(ControlMessage.TYPE_ADB_CONTROL);
         let offset = 0;
         const buffer = new Buffer(1 + 1);
         offset += buffer.writeUInt8(event.type, offset);
         buffer.writeUInt8(value, offset);
+        event.buffer = buffer;
+        return event;
+    }
+
+    public static createAdbInstallCommand(fileName: string): CommandControlMessage {
+        const event = new CommandControlMessage(ControlMessage.TYPE_ADB_CONTROL);
+        const textBytes: Uint8Array = Util.stringToUtf8ByteArray(fileName);
+        const textLength = textBytes ? textBytes.length : 0;
+        let offset = 0;
+        const buffer = Buffer.alloc(1 + 1 + 4 + textLength);
+        offset = buffer.writeUInt8(event.type, offset);
+        offset = buffer.writeUInt8(ControlMessage.TYPE_ADB_INSTALL_APK, offset);
+        offset = buffer.writeInt32BE(textLength, offset);
+        if (textBytes) {
+            textBytes.forEach((byte: number, index: number) => {
+                buffer.writeUInt8(byte, index + offset);
+            });
+        }
         event.buffer = buffer;
         return event;
     }

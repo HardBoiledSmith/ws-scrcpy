@@ -31,9 +31,11 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     private appKey: string;
     private logger: Logger;
 
-    private wdaEvents: Array<unknown> = [];
-    private wdaEventInAction = false;
+    private wdaEvents: Array<unknown>;
+    private wdaEventInAction: boolean;
+    private wdaEventTimer: NodeJS.Timeout | undefined;
     private wdaProcessId: number | undefined;
+    private wdaProcessTimer: NodeJS.Timeout | undefined;
     //
 
     public static getInstance(udid: string): WdaRunner {
@@ -98,27 +100,11 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         // TODO: HBsmith
         this.appKey = '';
         this.logger = new Logger(udid, 'iOS');
+        this.wdaEvents = [];
         this.wdaProcessId = undefined;
+        this.wdaProcessTimer = undefined;
         this.wdaEventInAction = false;
-
-        setInterval(() => {
-            if (this.wdaEventInAction || this.wdaEvents.length === 0) {
-                return;
-            }
-
-            const driver = this.server?.driver;
-            if (!driver) {
-                return;
-            }
-            const ev = this.wdaEvents.shift();
-            if (!ev) {
-                return;
-            }
-            this.wdaEventInAction = true;
-            (<Function>ev)(driver).finally(() => {
-                this.wdaEventInAction = false;
-            });
-        }, 100);
+        this.wdaEventTimer = undefined;
         //
     }
 
@@ -245,30 +231,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 webDriverAgentUrl: webDriverAgentUrl,
                 //
             });
-            // TODO: HBsmith
-            this.wdaProcessId = await Utils.getProcessId(`xcodebuild.+${this.udid}`);
-            setInterval(() => {
-                if (!this.started && !this.starting) {
-                    return;
-                }
 
-                Utils.getProcessId(`xcodebuild.+${this.udid}`).then((pid) => {
-                    if (this.wdaProcessId && pid && this.wdaProcessId === pid) {
-                        return;
-                    }
-
-                    this.started = false;
-                    this.starting = false;
-                    server.driver.deleteSession();
-                    delete this.server;
-                    this.emit('status-change', {
-                        status: WdaStatus.STOPPED,
-                        code: -1,
-                        text: 'WebDriverAgent process has been disconnected',
-                    });
-                });
-            }, 100);
-            //
             /// #if USE_WDA_MJPEG_SERVER
             const { DEVICE_CONNECTIONS_FACTORY } = await import(
                 'appium-xcuitest-driver/build/lib/device-connections-factory'
@@ -332,35 +295,116 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     }
 
     public async setUpTest(appKey: string): Promise<void> {
+        this.emit('status-change', { status: WdaStatus.IN_ACTION, text: '장비 초기화 중' });
+
+        this.appKey = appKey;
+        this.wdaEventInAction = true;
+
         if (!this.server) {
             this.logger.error('No Server at setUpTest', this.udid);
             return;
         }
 
-        await this.server.driver.mobilePressButton({ name: 'home' });
-        await this.server.driver.mobilePressButton({ name: 'home' });
-        await this.server.driver.mobilePressButton({ name: 'home' });
+        this.logger.info('setUpTest: Unlock the device');
+        await this.server.driver.unlock();
 
+        this.logger.info('setUpTest: Get the activated app');
         const appInfo = await this.server.driver.mobileGetActiveAppInfo();
         const bundleId = appInfo['bundleId'];
         if (bundleId !== 'com.apple.springboard') {
+            this.logger.info(`setUpTest: Terminate the app ${bundleId}`);
             await this.server.driver.terminateApp(bundleId);
         }
 
-        if (!appKey) return;
-        this.appKey = appKey;
+        this.logger.info('setUpTest: Press the home button to go to the home screen');
+        await this.server.driver.mobilePressButton({ name: 'home' });
+        await this.server.driver.mobilePressButton({ name: 'home' });
 
-        const installed = await this.server.driver.isAppInstalled(appKey);
-        if (!installed) return;
+        if (this.appKey) {
+            this.logger.info(`setUpTest: Check the app is installed - ${this.appKey}`);
+            const installed = await this.server.driver.isAppInstalled(this.appKey);
+            if (installed) {
+                this.logger.info(`setUpTest: Launch the terminated app to prevent Enqueue Failure - ${this.appKey}`);
+                await this.server.driver.mobileLaunchApp({ bundleId: this.appKey });
+                this.logger.info(`setUpTest: Terminate the app - ${this.appKey}`);
+                await this.server.driver.terminateApp(this.appKey);
 
-        await this.server.driver.terminateApp(appKey);
-        await this.server.driver.mobileLaunchApp({ bundleId: appKey });
-        await this.server.driver.activateApp(appKey);
+                this.logger.info(`setUpTest: Launch the app - ${this.appKey}`);
+                await this.server.driver.mobileLaunchApp({ bundleId: this.appKey });
+                this.logger.info(`setUpTest: Activate the app - ${this.appKey}`);
+                await this.server.driver.activateApp(this.appKey);
+            }
+        }
+
+        this.logger.info('setUpTest: Enable the WDA events');
+        this.wdaEventInAction = false;
+        this.wdaEventTimer = setInterval(() => {
+            if (this.wdaEventInAction || this.wdaEvents.length === 0) {
+                return;
+            }
+
+            const driver = this.server?.driver;
+            if (!driver) {
+                return;
+            }
+            const ev = this.wdaEvents.shift();
+            if (!ev) {
+                return;
+            }
+            this.wdaEventInAction = true;
+            this.emit('status-change', { status: WdaStatus.IN_ACTION, text: '제어 중' });
+            (<Function>ev)(driver).finally(() => {
+                this.wdaEventInAction = false;
+                this.emit('status-change', { status: WdaStatus.END_ACTION, text: '제어 완료' });
+            });
+        }, 100);
+        this.wdaProcessId = await Utils.getProcessId(`xcodebuild.+${this.udid}`);
+        this.wdaProcessTimer = setInterval(() => {
+            if (!this.started && !this.starting) {
+                return;
+            }
+
+            Utils.getProcessId(`xcodebuild.+${this.udid}`).then(async (pid) => {
+                if (this.wdaProcessId && pid && this.wdaProcessId === pid) {
+                    return;
+                }
+
+                this.started = false;
+                this.starting = false;
+
+                WdaRunner.servers.delete(this.udid);
+                WdaRunner.instances.delete(this.udid);
+                if (this.server) {
+                    if (this.server.driver) {
+                        await this.server.driver.deleteSession();
+                    }
+                    this.server.close();
+                    delete this.server;
+                }
+
+                this.emit('status-change', {
+                    status: WdaStatus.STOPPED,
+                    code: -1,
+                    text: 'WebDriverAgent process has been disconnected',
+                });
+            });
+        }, 100);
+
+        this.emit('status-change', { status: WdaStatus.END_ACTION, text: '장비 초기화 완료' });
     }
 
     public async tearDownTest(): Promise<void> {
+        this.logger.info('tearDownTest: Disable the WDA events');
         this.wdaEventInAction = false;
         this.wdaEvents = [];
+        if (this.wdaEventTimer) {
+            clearInterval(this.wdaEventTimer);
+            this.wdaEventTimer = undefined;
+        }
+        if (this.wdaProcessTimer) {
+            clearInterval(this.wdaProcessTimer);
+            this.wdaProcessTimer = undefined;
+        }
 
         if (!this.server) {
             this.logger.error('No Server at tearDownTest', this.udid);
@@ -368,19 +412,25 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         }
 
         if (this.appKey) {
+            this.logger.info(`tearDownTest: Check the app is installed - ${this.appKey}`);
             const installed = await this.server.driver.isAppInstalled(this.appKey);
             if (installed) {
+                this.logger.info(`tearDownTest: Terminate the app - ${this.appKey}`);
                 await this.server.driver.terminateApp(this.appKey);
             }
         }
 
+        this.logger.info('tearDownTest: Get the activated app');
         const appInfo = await this.server.driver.mobileGetActiveAppInfo();
         const bundleId = appInfo['bundleId'];
         if (bundleId !== 'com.apple.springboard') {
+            this.logger.info(`tearDownTest: Terminate the activated app - ${bundleId}`);
             await this.server.driver.terminateApp(bundleId);
         }
 
+        this.logger.info('tearDownTest: Go to the first page');
         await this.server.driver.mobilePressButton({ name: 'home' });
+        this.logger.info('tearDownTest: Lock the device');
         await this.server.driver.lock();
     }
     //

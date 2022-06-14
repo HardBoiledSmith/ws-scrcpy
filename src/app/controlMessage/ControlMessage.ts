@@ -21,6 +21,7 @@ export class ControlMessage {
     public static TYPE_ADB_CONTROL = 200;
     public static TYPE_ADB_CONTROL_SWIPE_UP = 0;
     public static TYPE_ADB_CONTROL_SWIPE_DOWN = 1;
+    public static TYPE_ADB_INSTALL_APK = 2;
     //
 
     constructor(readonly type: number) {}

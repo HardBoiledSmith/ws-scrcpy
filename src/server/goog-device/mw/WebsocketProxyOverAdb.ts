@@ -218,38 +218,61 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     return;
                 }
 
-                let isLandscape = false;
-                device
-                    .runShellCommandAdbKit('dumpsys window displays | grep mCurrentRotation | tail -1')
-                    .then((rr) => {
-                        if (rr) {
-                            const [oo] = rr.match(/\d+/);
-                            isLandscape = oo === '90' || oo === '270';
-                        }
-                        return device.runShellCommandAdbKit('wm size | tail -1');
-                    })
-                    .then((rr) => {
-                        let [, ww, hh] = rr.match(/(\d+)x(\d+)/);
-                        if (isLandscape) {
-                            [ww, hh] = [hh, ww];
-                        }
+                switch (value) {
+                    case ControlMessage.TYPE_ADB_INSTALL_APK: {
+                        const bb = event.data.slice(6);
+                        const fileName = bb.toString();
+                        const pathToApk = `/data/local/tmp/${fileName}`;
+                        // AdbKit.install is not working
+                        device
+                            .runShellCommandAdbKit(`pm install -r '${pathToApk}'`)
+                            .then(() => {
+                                this.logger.info(`success to install apk: ${fileName}`);
+                                return device.runShellCommandAdbKit(`rm -f '${pathToApk}'`);
+                            })
+                            .then(() => {
+                                this.logger.info(`remove the installed apk: '${pathToApk}'`);
+                            })
+                            .catch((ee) => {
+                                this.logger.error(`failed to install apk: '${fileName}'`, ee);
+                            });
+                        return;
+                    }
+                    case ControlMessage.TYPE_ADB_CONTROL_SWIPE_DOWN:
+                    case ControlMessage.TYPE_ADB_CONTROL_SWIPE_UP: {
+                        let isLandscape = false;
+                        device
+                            .runShellCommandAdbKit('dumpsys window displays | grep mCurrentRotation | tail -1')
+                            .then((rr) => {
+                                if (rr) {
+                                    const [oo] = rr.match(/\d+/);
+                                    isLandscape = oo === '90' || oo === '270';
+                                }
+                                return device.runShellCommandAdbKit('wm size | tail -1');
+                            })
+                            .then((rr) => {
+                                let [, ww, hh] = rr.match(/(\d+)x(\d+)/);
+                                if (isLandscape) {
+                                    [ww, hh] = [hh, ww];
+                                }
 
-                        const xx = parseInt(ww) / 2;
-                        const y1 = parseInt(hh) / 4;
-                        const y2 = (parseInt(hh) * 4) / 5;
-                        switch (value) {
-                            case ControlMessage.TYPE_ADB_CONTROL_SWIPE_UP:
-                                device.runShellCommandAdbKit(`input swipe ${xx} ${y2} ${xx} ${y1} 500`);
-                                break;
-                            case ControlMessage.TYPE_ADB_CONTROL_SWIPE_DOWN:
-                                device.runShellCommandAdbKit(`input swipe ${xx} ${y1} ${xx} ${y2} 500`);
-                                break;
-                        }
-                    })
-                    .catch((error) => {
-                        this.logger.error(error);
-                    });
-                return;
+                                const xx = parseInt(ww) / 2;
+                                let y1 = parseInt(hh) / 4;
+                                let y2 = (parseInt(hh) * 4) / 5;
+                                if (value === ControlMessage.TYPE_ADB_CONTROL_SWIPE_UP) {
+                                    [y1, y2] = [y2, y1];
+                                }
+
+                                device.runShellCommandAdbKit(`input swipe ${xx} ${y1} ${xx} ${y2} 500`).then(() => {
+                                    this.logger.info(`Success to swipe: ${xx} ${y1} ${xx} ${y2} 500`);
+                                });
+                            })
+                            .catch((error) => {
+                                this.logger.error(error);
+                            });
+                        return;
+                    }
+                }
             }
         } catch (error) {
             this.logger.error(error);

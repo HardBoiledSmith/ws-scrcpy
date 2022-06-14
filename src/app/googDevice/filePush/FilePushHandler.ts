@@ -1,6 +1,7 @@
 import { DragAndDropHandler, DragEventListener } from '../DragAndDropHandler';
 import { FilePushStream, PushResponse } from './FilePushStream';
 import { FilePushResponseStatus } from './FilePushResponseStatus';
+import {CommandControlMessage} from "../../controlMessage/CommandControlMessage";
 
 type Resolve = (response: PushResponse) => void;
 
@@ -104,6 +105,10 @@ export default class FilePushHandler implements DragEventListener {
                         error: false,
                         finished: true,
                     });
+                    // TODO: HBsmith
+                    const message = CommandControlMessage.createAdbInstallCommand(fileName);
+                    this.filePushStream.sendEvent(message);
+                    //
                 }
                 console.log(TAG, `File "${fileName}" uploaded in ${Date.now() - start}ms`);
                 return;
