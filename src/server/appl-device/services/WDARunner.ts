@@ -57,7 +57,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 console.error('Server Error:', args);
             });
             server.on('close', (...args: any[]) => {
-                console.error('Server Close:', args);
+                console.info('Server Close:', args);
             });
             this.servers.set(udid, server);
         }
@@ -353,10 +353,14 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             }
             this.wdaEventInAction = true;
             this.emit('status-change', { status: WdaStatus.IN_ACTION, text: '제어 중' });
-            (<Function>ev)(driver).finally(() => {
-                this.wdaEventInAction = false;
-                this.emit('status-change', { status: WdaStatus.END_ACTION, text: '제어 완료' });
-            });
+            (<Function>ev)(driver)
+                .catch((e: Error) => {
+                    this.logger.error(e);
+                })
+                .finally(() => {
+                    this.wdaEventInAction = false;
+                    this.emit('status-change', { status: WdaStatus.END_ACTION, text: '제어 완료' });
+                });
         }, 100);
         this.wdaProcessId = await Utils.getProcessId(`xcodebuild.+${this.udid}`);
         this.wdaProcessTimer = setInterval(() => {

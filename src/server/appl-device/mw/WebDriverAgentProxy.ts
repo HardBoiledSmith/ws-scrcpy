@@ -84,13 +84,19 @@ export class WebDriverAgentProxy extends Mw {
                 if (this.wda.isStarted()) {
                     this.onStatusChange(command, WdaStatus.STARTED);
                     // TODO: HBsmith
-                    this.wda.setUpTest(this.appKey);
+                    this.wda.setUpTest(this.appKey).catch((e: Error) => {
+                        this.logger.error(e);
+                        this.wda?.emit('status-change', { status: WdaStatus.ERROR, text: '초기화 실패' });
+                    });
                     //
                 } else {
                     // TODO: HBsmith
                     this.onStatusChange(command, WdaStatus.STARTED);
                     this.wda.start().then(() => {
-                        this.wda?.setUpTest(this.appKey);
+                        this.wda?.setUpTest(this.appKey).catch((e: Error) => {
+                            this.logger.error(e);
+                            this.wda?.emit('status-change', { status: WdaStatus.ERROR, text: '초기화 실패' });
+                        });
                     });
                     //
                 }
@@ -177,7 +183,9 @@ export class WebDriverAgentProxy extends Mw {
 
         new Promise((resolve) => setTimeout(resolve, 3000))
             .then(() => {
-                return this.wda?.tearDownTest();
+                return this.wda?.tearDownTest().catch((e: Error) => {
+                    this.logger.error(e);
+                });
             })
             .finally(() => {
                 super.release();
