@@ -92,12 +92,21 @@ export class WebDriverAgentProxy extends Mw {
                 } else {
                     // TODO: HBsmith
                     this.onStatusChange(command, WdaStatus.STARTED);
-                    this.wda.start().then(() => {
-                        this.wda?.setUpTest(this.appKey).catch((e: Error) => {
+                    this.wda
+                        .start()
+                        .then(() => {
+                            this.wda?.setUpTest(this.appKey).catch((e: Error) => {
+                                this.logger.error(e);
+                                this.wda?.emit('status-change', { status: WdaStatus.ERROR, text: '초기화 실패' });
+                            });
+                        })
+                        .catch((e: Error) => {
                             this.logger.error(e);
-                            this.wda?.emit('status-change', { status: WdaStatus.ERROR, text: '초기화 실패' });
+                            this.wda?.emit('status-change', {
+                                status: WdaStatus.ERROR,
+                                text: 'WebDrierAgent 재실행 중. 5분 뒤 다시 시도해 주세요.',
+                            });
                         });
-                    });
                     //
                 }
             })

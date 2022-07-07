@@ -24,7 +24,9 @@ export class MjpegProxyFactory {
                 };
                 wda.on('status-change', onStatusChange);
             });
-            await wda.start();
+            try {
+                await wda.start();
+            } catch (e) {}
             await startPromise;
         }
         const port = wda.mjpegPort;

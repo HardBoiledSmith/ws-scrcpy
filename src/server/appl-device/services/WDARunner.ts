@@ -4,9 +4,6 @@ import * as portfinder from 'portfinder';
 import { Server, XCUITestDriver } from '../../../types/WdaServer';
 import * as XCUITest from 'appium-xcuitest-driver';
 import { WDAMethod } from '../../../common/WDAMethod';
-// TODO: HBsmith
-// import { timing } from 'appium-support';
-//
 import { WdaStatus } from '../../../common/WdaStatus';
 // TODO: HBsmith
 import { Config } from '../../Config';
@@ -24,7 +21,7 @@ export interface WdaRunnerEvents {
 export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     protected static TAG = 'WDARunner';
     private static instances: Map<string, WdaRunner> = new Map();
-    public static SHUTDOWN_TIMEOUT = 15000;
+    public static SHUTDOWN_TIMEOUT = 3000; // TODO: HBsmith
     private static servers: Map<string, Server> = new Map();
     private static cachedScreenWidth: Map<string, any> = new Map();
     // TODO: HBsmith
@@ -91,7 +88,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     private server?: Server;
     private mjpegServerPort = 0;
     private wdaLocalPort = 0;
-    private holders = 0;
+    // private holders = 0; // TODO: HBsmith
     protected releaseTimeoutId?: NodeJS.Timeout;
 
     constructor(private readonly udid: string) {
@@ -112,22 +109,27 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         if (this.releaseTimeoutId) {
             clearTimeout(this.releaseTimeoutId);
         }
-        this.holders++;
+        // this.holders++; // TODO: HBsmith
     }
 
     protected unlock(): void {
+        /* TODO: HBsmith
         this.holders--;
         if (this.holders > 0) {
             return;
-        }
+        }*/
         this.releaseTimeoutId = setTimeout(async () => {
             WdaRunner.servers.delete(this.udid);
             WdaRunner.instances.delete(this.udid);
             if (this.server) {
                 if (this.server.driver) {
-                    await this.server.driver.deleteSession();
+                    try {
+                        await this.server.driver.deleteSession();
+                        this.server.close();
+                    } catch (e) {
+                        this.logger.error(e);
+                    }
                 }
-                this.server.close();
                 delete this.server;
             }
         }, WdaRunner.SHUTDOWN_TIMEOUT);
@@ -212,6 +214,11 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
 
         try {
             // TODO: HBsmith
+            const pid = await Utils.getProcessId(`xcodebuild.+${this.udid}`);
+            if (!pid) {
+                throw Error('No WebDriverAgent process found');
+            }
+
             const data = await WdaRunner.apiGetDevice(this.udid);
             const webDriverAgentUrl = `http://${data['device_host']}:${data['device_port']}`;
             const model = data['model'];
@@ -363,6 +370,10 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 });
         }, 100);
         this.wdaProcessId = await Utils.getProcessId(`xcodebuild.+${this.udid}`);
+        if (!this.wdaProcessId) {
+            throw Error('No WebDriverAgent process found');
+        }
+
         this.wdaProcessTimer = setInterval(() => {
             if (!this.started && !this.starting) {
                 return;
@@ -375,16 +386,6 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
 
                 this.started = false;
                 this.starting = false;
-
-                WdaRunner.servers.delete(this.udid);
-                WdaRunner.instances.delete(this.udid);
-                if (this.server) {
-                    if (this.server.driver) {
-                        await this.server.driver.deleteSession();
-                    }
-                    this.server.close();
-                    delete this.server;
-                }
 
                 this.emit('status-change', {
                     status: WdaStatus.STOPPED,

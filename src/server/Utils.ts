@@ -73,7 +73,7 @@ export class Utils {
     public static async getProcessId(query: string): Promise<number | undefined> {
         let cmd = '';
         if (['darwin', 'linux'].includes(process.platform)) {
-            cmd = `ps -ef | grep -E '${query}' | grep -v grep | awk '{ print $2 }' | head -1`
+            cmd = `ps -ef | grep -E '${query}' | grep -v grep | awk '{ print $2 }' | head -1`;
         } else {
             throw new Error('Unsupported platform');
         }
