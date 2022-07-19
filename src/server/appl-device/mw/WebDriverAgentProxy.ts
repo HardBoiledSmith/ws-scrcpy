@@ -104,7 +104,7 @@ export class WebDriverAgentProxy extends Mw {
                             this.logger.error(e);
                             this.wda?.emit('status-change', {
                                 status: WdaStatus.ERROR,
-                                text: 'WebDrierAgent 재실행 중. 5분 뒤 다시 시도해 주세요.',
+                                text: 'WebDriverAgent 재실행 중. 5분 뒤 다시 시도해 주세요.',
                             });
                         });
                     //

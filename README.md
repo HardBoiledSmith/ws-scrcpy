@@ -1,6 +1,11 @@
 # HBsmith 참조
 안드로이드 리얼디바이스 장비 지원을 위해 NetrisTV의 ws-scrcpy를 Fork하였음.
 
+## 사용하는 포트
+- 28500: Android
+- 28100: iOS
+- 38000~40000: 프록시 포트 대역
+
 ## 설치 및 설정
 - Homebrew 설치
   ```bash

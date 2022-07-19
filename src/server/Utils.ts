@@ -1,11 +1,15 @@
 import * as os from 'os';
 // TODO: HBsmith
+import * as portfinder from 'portfinder';
+import fs from 'fs';
 import qs from 'qs';
 import { createHmac } from 'crypto';
 import { execSync } from 'child_process';
 //
 
 export class Utils {
+    private static readonly PathToFileLock: string = '/tmp/ramiel_file_lock';
+
     public static printListeningMsg(proto: string, port: number): void {
         const ipv4List: string[] = [];
         const ipv6List: string[] = [];
@@ -83,6 +87,59 @@ export class Utils {
         } catch {
             return undefined;
         }
+    }
+
+    public static sleepAsync(ms: number): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
+    }
+
+    public static async fileLock(file: string): Promise<void> {
+        const fd = fs.openSync(`${Utils.PathToFileLock}/${file}`, 'wx');
+        fs.closeSync(fd);
+    }
+
+    public static async fileUnlock(file: string): Promise<void> {
+        return fs.unlinkSync(`${Utils.PathToFileLock}/${file}`);
+    }
+
+    public static async initFileLock(): Promise<void> {
+        try {
+            if (fs.existsSync(Utils.PathToFileLock)) {
+                fs.rmdirSync(Utils.PathToFileLock, { recursive: true });
+            }
+            fs.mkdirSync(Utils.PathToFileLock);
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    public static async getPortWithLock(): Promise<number> {
+        let port = -1;
+        for (let i = 0; i < 10; ++i) {
+            port = await portfinder.getPortPromise({
+                port: 38000,
+                stopPort: 40000,
+            });
+
+            try {
+                if (!port) {
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw Error('No free port found');
+                }
+                await Utils.fileLock(`${port}.lock`);
+                break;
+            } catch (e) {
+                if ('EEXIST' === e.code && i < 9) {
+                    await Utils.sleepAsync(1000);
+                } else {
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw e;
+                }
+            }
+        }
+        return port;
     }
     //
 }

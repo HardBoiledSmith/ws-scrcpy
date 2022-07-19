@@ -1,6 +1,6 @@
 import { ControlCenterCommand } from '../../../common/ControlCenterCommand';
 import { TypedEmitter } from '../../../common/TypedEmitter';
-import * as portfinder from 'portfinder';
+// import * as portfinder from 'portfinder'; // TODO: HBsmith
 import { Server, XCUITestDriver } from '../../../types/WdaServer';
 import * as XCUITest from 'appium-xcuitest-driver';
 import { WDAMethod } from '../../../common/WDAMethod';
@@ -25,6 +25,8 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     private static servers: Map<string, Server> = new Map();
     private static cachedScreenWidth: Map<string, any> = new Map();
     // TODO: HBsmith
+    private static serverPorts: Map<string, number> = new Map();
+
     private appKey: string;
     private logger: Logger;
 
@@ -48,7 +50,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     public static async getServer(udid: string): Promise<Server> {
         let server = this.servers.get(udid);
         if (!server) {
-            const port = await portfinder.getPortPromise();
+            const port = await Utils.getPortWithLock();
             server = await XCUITest.startServer(port, '127.0.0.1');
             server.on('error', (...args: any[]) => {
                 console.error('Server Error:', args);
@@ -57,6 +59,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 console.info('Server Close:', args);
             });
             this.servers.set(udid, server);
+            this.serverPorts.set(udid, port);
         }
         return server;
     }
@@ -106,10 +109,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     }
 
     protected lock(): void {
+        /* TODO: HBsmith
         if (this.releaseTimeoutId) {
             clearTimeout(this.releaseTimeoutId);
         }
-        // this.holders++; // TODO: HBsmith
+        this.holders++;
+        */
     }
 
     protected unlock(): void {
@@ -132,6 +137,19 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 }
                 delete this.server;
             }
+            // TODO: HBsmith
+            const serverPort = WdaRunner.serverPorts.get(this.udid);
+            WdaRunner.serverPorts.delete(this.udid);
+
+            for (const port of [serverPort, this.wdaLocalPort, this.mjpegServerPort]) {
+                try {
+                    if (!port || port <= 0) {
+                        continue;
+                    }
+                    await Utils.fileUnlock(`${port}.lock`);
+                } catch (e) {}
+            }
+            //
         }, WdaRunner.SHUTDOWN_TIMEOUT);
     }
 
@@ -210,23 +228,26 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         }
         this.emit('status-change', { status: WdaStatus.STARTING });
         this.starting = true;
-        const server = await WdaRunner.getServer(this.udid);
 
+        let server;
         try {
             // TODO: HBsmith
+            server = await WdaRunner.getServer(this.udid);
             const pid = await Utils.getProcessId(`xcodebuild.+${this.udid}`);
             if (!pid) {
+                // noinspection ExceptionCaughtLocallyJS
                 throw Error('No WebDriverAgent process found');
             }
 
             const data = await WdaRunner.apiGetDevice(this.udid);
             const webDriverAgentUrl = `http://${data['device_host']}:${data['device_port']}`;
             const model = data['model'];
-            //
             const remoteMjpegServerPort = MJPEG_SERVER_PORT;
-            const ports = await Promise.all([portfinder.getPortPromise(), portfinder.getPortPromise()]);
-            this.wdaLocalPort = ports[0];
-            this.mjpegServerPort = ports[1];
+
+            const proxyPort: number = await Utils.getPortWithLock();
+            this.wdaLocalPort = proxyPort;
+            this.mjpegServerPort = proxyPort;
+            //
             await server.driver.createSession({
                 platformName: 'iOS',
                 deviceName: model, // TODO: HBsmith

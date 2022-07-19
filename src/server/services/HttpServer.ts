@@ -70,7 +70,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
         return `HTTP(s) Server Service`;
     }
 
-    // TODO: HBsmith DEV-11721, DEV-13549, DEV-14061
+    // TODO: HBsmith
     public CheckPermission(req: express.Request, res: express.Response, next: express.NextFunction): void {
         if (req.hostname === 'localhost') {
             console.log(Utils.getTimeISOString(), 'Checking permission has been bypassed: host is', req.hostname);
@@ -94,7 +94,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                     return;
                 }
 
-                let pp = null;
+                let pp;
                 if (appKey) {
                     pp = {
                         GET: api,
@@ -125,6 +125,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
     //
 
     public async start(): Promise<void> {
+        // TODO: HBsmith
+        await Utils.initFileLock();
+        //
         this.mainApp = express();
         if (HttpServer.SERVE_STATIC && HttpServer.PUBLIC_DIR) {
             // TODO: HBsmith DEV-11721
