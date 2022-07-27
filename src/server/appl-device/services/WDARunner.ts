@@ -91,7 +91,10 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     private server?: Server;
     private mjpegServerPort = 0;
     private wdaLocalPort = 0;
-    // private holders = 0; // TODO: HBsmith
+    // TODO: HBsmith
+    private deviceName: string | undefined = '';
+    // private holders = 0;
+    //
     protected releaseTimeoutId?: NodeJS.Timeout;
 
     constructor(private readonly udid: string) {
@@ -241,16 +244,16 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
 
             const data = await WdaRunner.apiGetDevice(this.udid);
             const webDriverAgentUrl = `http://${data['device_host']}:${data['device_port']}`;
-            const model = data['model'];
             const remoteMjpegServerPort = MJPEG_SERVER_PORT;
-
             const proxyPort: number = await Utils.getPortWithLock();
+
+            this.deviceName = data['alias'] || data['model'];
             this.wdaLocalPort = proxyPort;
             this.mjpegServerPort = proxyPort;
             //
             await server.driver.createSession({
                 platformName: 'iOS',
-                deviceName: model, // TODO: HBsmith
+                deviceName: this.deviceName, // TODO: HBsmith
                 udid: this.udid,
                 wdaLocalPort: this.wdaLocalPort,
                 usePrebuiltWDA: true,
@@ -323,7 +326,8 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     }
 
     public async setUpTest(appKey: string): Promise<void> {
-        this.emit('status-change', { status: WdaStatus.IN_ACTION, text: '장비 초기화 중' });
+        this.emit('status-change', { status: WdaStatus.SET_UP_DEVICE_INFO, text: this.deviceName });
+        this.emit('status-change', { status: WdaStatus.SET_UP, text: '장비 초기화 중' });
 
         this.appKey = appKey;
         this.wdaEventInAction = true;
@@ -356,6 +360,8 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 await this.server.driver.mobileLaunchApp({ bundleId: this.appKey });
                 this.logger.info(`setUpTest: Terminate the app - ${this.appKey}`);
                 await this.server.driver.terminateApp(this.appKey);
+
+                this.emit('status-change', { status: WdaStatus.SET_UP_SCREEN_ON, text: '장비 초기화 중 - 앱 시작' });
 
                 this.logger.info(`setUpTest: Launch the app - ${this.appKey}`);
                 await this.server.driver.mobileLaunchApp({ bundleId: this.appKey });
@@ -416,7 +422,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             });
         }, 100);
 
-        this.emit('status-change', { status: WdaStatus.END_ACTION, text: '장비 초기화 완료' });
+        this.emit('status-change', { status: WdaStatus.END_SET_UP, text: '장비 초기화 완료' });
     }
 
     public async tearDownTest(): Promise<void> {

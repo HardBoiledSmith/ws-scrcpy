@@ -14,6 +14,7 @@ export class MjpegPlayer extends BasePlayer {
             tag.id = id;
         }
         tag.className = 'video-layer';
+        tag.id = 'video-layer';
         return tag;
     }
 
