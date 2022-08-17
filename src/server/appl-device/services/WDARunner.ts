@@ -4,6 +4,7 @@ import { TypedEmitter } from '../../../common/TypedEmitter';
 import { Server, XCUITestDriver } from '../../../types/WdaServer';
 import * as XCUITest from 'appium-xcuitest-driver';
 import { WDAMethod } from '../../../common/WDAMethod';
+// import { timing } from '../../../workarounds/appium-support'; // TODO: HBsmith
 import { WdaStatus } from '../../../common/WdaStatus';
 // TODO: HBsmith
 import { Config } from '../../Config';

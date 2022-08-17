@@ -179,4 +179,12 @@ export default class Util {
         // Use our detect's results. passive applied if supported, capture will be false either way.
         // elem.addEventListener('touchstart', fn, supportsPassive ? { passive: true } : false);
     }
+
+    // TODO: HBsmith
+    public static sleepBusyWaiting(ms: number): void {
+        const startTime = new Date().getTime();
+        while(new Date().getTime() - startTime < ms) {}
+        return;
+    }
+    //
 }

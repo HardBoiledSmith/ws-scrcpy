@@ -262,12 +262,21 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
     }
 
     public setWdaStatusNotification(status: WdaStatus): void {
-        // TODO: use proper notification instead of `cursor: wait`
-        if ([WdaStatus.STARTED, WdaStatus.STOPPED, WdaStatus.END_ACTION].includes(status)) {
-            this.videoWrapper.classList.remove(WAIT_CLASS);
-        } else {
+        // TODO: HBsmith
+        if (
+            [
+                WdaStatus.STARTING,
+                WdaStatus.IN_ACTION,
+                WdaStatus.SET_UP,
+                WdaStatus.SET_UP_DEVICE_INFO,
+                WdaStatus.SET_UP_SCREEN_ON,
+            ].includes(status)
+        ) {
             this.videoWrapper.classList.add(WAIT_CLASS);
+        } else {
+            this.videoWrapper.classList.remove(WAIT_CLASS);
         }
+        //
     }
 
     protected createMoreBox(udid: string, player: BasePlayer): ApplMoreBox {

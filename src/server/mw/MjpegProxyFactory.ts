@@ -21,6 +21,7 @@ export class MjpegProxyFactory {
         }
         if (!wda.isStarted()) {
             wda.emit('status-change', { status: WdaStatus.ERROR, text: '대기 시간 초과: 화면 전송 세션' });
+            return;
         }
         const port = wda.mjpegPort;
         const url = `http://127.0.0.1:${port}`;

@@ -50,13 +50,47 @@ export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient
                 ManagerClient.sockets.set(url, newMultiplexer);
                 openedMultiplexer = newMultiplexer;
             }
-            const ws = openedMultiplexer.createChannel(this.getChannelInitData());
+            // TODO: HBsmith
+            let ws;
+            for (let tt = 0; tt < 3; ++tt) {
+                try {
+                    ws = openedMultiplexer.createChannel(this.getChannelInitData());
+                } catch (error) {
+                    console.error(`Failed to create channel ${tt}/3`);
+                    console.error('Detail: ', error);
+                    if (tt >= 2) {
+                        throw error;
+                    }
+                    Util.sleepBusyWaiting(2 ** tt);
+                }
+            }
+            if (!ws) {
+                throw new Error('cannot create channel');
+            }
+            //
             ws.addEventListener('open', this.onSocketOpen.bind(this));
             ws.addEventListener('message', this.onSocketMessage.bind(this));
             ws.addEventListener('close', this.onSocketClose.bind(this));
             this.ws = ws;
         } else {
-            const ws = new WebSocket(url);
+            // TODO: HBsmith
+            let ws;
+            for (let tt = 0; tt < 3; ++tt) {
+                try {
+                    ws = new WebSocket(url);
+                } catch (error) {
+                    console.error(`Failed to create websocket ${tt}/3`);
+                    console.error('Detail: ', error);
+                    if (tt >= 2) {
+                        throw error;
+                    }
+                    Util.sleepBusyWaiting(2 ** tt);
+                }
+            }
+            if (!ws) {
+                throw new Error('cannot create websocket');
+            }
+            //
             ws.addEventListener('open', this.onSocketOpen.bind(this));
             ws.addEventListener('message', this.onSocketMessage.bind(this));
             ws.addEventListener('close', this.onSocketClose.bind(this));
