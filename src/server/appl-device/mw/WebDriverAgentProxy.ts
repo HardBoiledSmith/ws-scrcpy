@@ -8,7 +8,7 @@ import { ChannelCode } from '../../../common/ChannelCode';
 import Util from '../../../app/Util';
 import { WdaStatus } from '../../../common/WdaStatus';
 import { Config } from '../../Config';
-import { Utils, Logger } from '../../Utils'; // TODO: HBsmith DEV-14465
+import { Utils, Logger } from '../../Utils'; // TODO: HBsmith
 import qs from 'qs';
 import axios from 'axios';
 
@@ -16,7 +16,7 @@ export class WebDriverAgentProxy extends Mw {
     public static readonly TAG = 'WebDriverAgentProxy';
     protected name: string;
     private wda?: WdaRunner;
-    // TODO: HBsmith DEV-14260, DEV-14465
+    // TODO: HBsmith
     private appKey: string;
     private userAgent: string;
     private apiSessionCreated: boolean;
@@ -40,7 +40,7 @@ export class WebDriverAgentProxy extends Mw {
     constructor(protected ws: Multiplexer, private readonly udid: string) {
         super(ws);
         this.name = `[${WebDriverAgentProxy.TAG}][udid: ${this.udid}]`;
-        // TODO: HBsmith DEV-14260
+        // TODO: HBsmith
         this.udid = udid;
         this.appKey = '';
         this.userAgent = '';
@@ -78,15 +78,15 @@ export class WebDriverAgentProxy extends Mw {
                     return;
                 }
                 this.wda = WdaRunner.getInstance(udid);
-                this.wda.on('status-change', ({ status, code, text }) => {
-                    this.onStatusChange(command, status, code, text);
+                this.wda.on('status-change', ({ status, code, text, detail }) => {
+                    this.onStatusChange(command, status, code, text, detail);
                 });
                 if (this.wda.isStarted()) {
                     this.onStatusChange(command, WdaStatus.STARTED);
                     // TODO: HBsmith
-                    this.wda.setUpTest(this.appKey).catch((e: Error) => {
-                        this.logger.error(e);
-                        this.wda?.emit('status-change', { status: WdaStatus.ERROR, text: '초기화 실패' });
+                    this.wda.setUpTest(this.appKey).catch((e) => {
+                        e.text = '장비 초기화 실패';
+                        throw e;
                     });
                     //
                 } else {
@@ -95,30 +95,36 @@ export class WebDriverAgentProxy extends Mw {
                     this.wda
                         .start()
                         .then(() => {
-                            this.wda?.setUpTest(this.appKey).catch((e: Error) => {
-                                this.logger.error(e);
-                                this.wda?.emit('status-change', { status: WdaStatus.ERROR, text: '초기화 실패' });
-                            });
+                            return this.wda?.setUpTest(this.appKey);
                         })
-                        .catch((e: Error) => {
-                            this.logger.error(e);
-                            this.wda?.emit('status-change', {
-                                status: WdaStatus.ERROR,
-                                text: 'WebDriverAgent 재실행 중. 5분 뒤 다시 시도해 주세요.',
-                            });
+                        .catch((e) => {
+                            e.text = 'WebDriverAgent 재실행 중. 5분 뒤 다시 시도해 주세요.';
+                            throw e;
                         });
                     //
                 }
             })
             .catch((e) => {
-                this.onStatusChange(command, WdaStatus.ERROR, -1, e.message);
+                this.onStatusChange(
+                    command,
+                    WdaStatus.ERROR,
+                    -1,
+                    e.text || '알 수 없는 이유로 장비 초기화에 실패하였습니다.',
+                    e.message,
+                );
                 this.ws.close(4900, e.message);
                 this.logger.error(e);
             });
         //
     }
 
-    private onStatusChange = (command: ControlCenterCommand, status: WdaStatus, code?: number, text?: string): void => {
+    private onStatusChange = (
+        command: ControlCenterCommand,
+        status: WdaStatus,
+        code?: number,
+        text?: string,
+        detail?: string,
+    ): void => {
         const id = command.getId();
         const udid = command.getUdid();
         const type = 'run-wda';
@@ -130,6 +136,7 @@ export class WebDriverAgentProxy extends Mw {
                 status,
                 code,
                 text,
+                detail,
             },
         };
         this.sendMessage(message);
@@ -209,7 +216,7 @@ export class WebDriverAgentProxy extends Mw {
         //
     }
 
-    // TODO: HBsmith DEV-14260
+    // TODO: HBsmith
     private async apiCreateSession() {
         const host = Config.getInstance().getRamielApiServerEndpoint();
         const api = `/real-devices/${this.udid}/control/`;
@@ -286,12 +293,12 @@ export class WebDriverAgentProxy extends Mw {
             .then((rr) => {
                 this.logger.info(`[${tag}] success to delete a session. resp code: ${rr.status}`);
             })
-            .catch((error) => {
+            .catch((e) => {
                 let status;
                 try {
-                    status = 'response' in error && 'status' in error.response ? error.response.status : 'unknown1';
+                    status = 'response' in e && 'status' in e.response ? e.response.status : 'unknown1';
                 } catch {
-                    status = error.toString();
+                    status = e.message;
                 }
                 console.error(Utils.getTimeISOString(), `[${tag}] failed to create a session: ${status}`);
             });

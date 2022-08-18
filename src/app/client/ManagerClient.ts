@@ -55,6 +55,7 @@ export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient
             for (let tt = 0; tt < 3; ++tt) {
                 try {
                     ws = openedMultiplexer.createChannel(this.getChannelInitData());
+                    break;
                 } catch (error) {
                     console.error(`Failed to create channel ${tt}/3`);
                     console.error('Detail: ', error);
@@ -78,6 +79,7 @@ export abstract class ManagerClient<P extends ParamsBase, TE> extends BaseClient
             for (let tt = 0; tt < 3; ++tt) {
                 try {
                     ws = new WebSocket(url);
+                    break;
                 } catch (error) {
                     console.error(`Failed to create websocket ${tt}/3`);
                     console.error('Detail: ', error);

@@ -89,7 +89,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
             return;
         }
         const body = document.body;
-        // TODO: HBsmith DEV-14062
+        // TODO: HBsmith
         const width = ((body.clientWidth - controlButtons.clientWidth) & ~15) * 0.9;
         const height = (body.clientHeight & ~15) * 0.9;
         //
@@ -106,7 +106,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
     protected deviceView?: HTMLDivElement;
     protected moreBox?: HTMLElement;
     protected player?: BasePlayer;
-    // TODO: HBsmith DEV-14062
+    // TODO: HBsmith
     protected appKey?: string;
     protected userAgent?: string;
     //
@@ -179,13 +179,15 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
     }
 
     // TODO: HBsmith
-    private logWdaStatus(status: WdaStatus, text: string | undefined): void {
+    private logWdaStatus(response: MessageRunWdaResponse): void {
+        const data = response.data;
         const statusText = document.getElementById('control-header-device-status-text');
 
-        let msg = `[${status}]`;
-        if (!!text) msg += ` ${text}`;
+        let msg = `[${data.status}]`;
+        if (!!data.text) msg += ` ${data.text}`;
         if (statusText) statusText.textContent = msg;
-        this.emit('wda:status', status);
+        if (data.detail) console.log(data.detail);
+        this.emit('wda:status', data.status);
     }
     //
 
@@ -199,7 +201,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
             case WdaStatus.ERROR:
             case WdaStatus.IN_ACTION:
             case WdaStatus.END_ACTION:
-                this.logWdaStatus(data.status, data.text);
+                this.logWdaStatus(message);
                 break;
             case WdaStatus.SET_UP_DEVICE_INFO:
                 if (data.text) {
@@ -213,7 +215,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
             case WdaStatus.SET_UP:
             case WdaStatus.SET_UP_SCREEN_ON:
             case WdaStatus.END_SET_UP:
-                this.logWdaStatus(data.status, data.text);
+                this.logWdaStatus(message);
                 const videoLayer = document.getElementById('video-layer');
                 if (!videoLayer) {
                     break;
@@ -225,8 +227,8 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
                 }
                 break;
             default:
-                this.logWdaStatus(data.status, data.text);
-                throw Error(`Unknown WDA status: '${status}'`);
+                this.logWdaStatus(message);
+                throw Error(`Unknown WDA status: '${data.status}'`);
         }
     };
 

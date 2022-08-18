@@ -3,7 +3,7 @@ import VideoConverter, { setLogger, mimeType } from 'h264-converter';
 import VideoSettings from '../VideoSettings';
 import Size from '../Size';
 import { DisplayInfo } from '../DisplayInfo';
-// TODO: DEV-12424
+// TODO: HBsmith
 import HBsmithLogo from '../../public/images/hbsmith-logo.png';
 //
 
@@ -43,7 +43,7 @@ export class MsePlayer extends BasePlayer {
             tag.id = id;
         }
         tag.className = 'video-layer';
-        // TODO: DEV-12424
+        // TODO: HBsmith
         tag.poster = HBsmithLogo;
         //
         return tag;

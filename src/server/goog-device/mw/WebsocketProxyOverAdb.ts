@@ -16,7 +16,7 @@ import { ControlMessage } from '../../../app/controlMessage/ControlMessage';
 //
 
 export class WebsocketProxyOverAdb extends WebsocketProxy {
-    // TODO: HBsmith DEV-12386, DEV-13549, HBsmith DEV-12386, DEV-14465
+    // TODO: HBsmith
     private udid = '';
     private appKey = '';
     private userAgent = '';
@@ -67,7 +67,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             ws.close(4003, `[${this.TAG}] Invalid value "${path}" for "path" parameter`);
             return;
         }
-        // TODO: HBsmith DEV-12386, DEV-13549
+        // TODO: HBsmith
         let appKey = '';
         let userAgent = '';
         if (parsedQuery) {
@@ -83,7 +83,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         //
     }
 
-    // TODO: HBsmith DEV-12387, DEV-12826, DEV-13214, DEV-13549, DEV-13718
+    // TODO: HBsmith
     private static async apiCreateSession(ws: WS, udid: string, userAgent?: string) {
         const host = Config.getInstance().getRamielApiServerEndpoint();
         const api = `/real-devices/${udid}/control/`;
@@ -179,10 +179,10 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         udid: string,
         remote: string,
         path?: string,
-        appKey?: string, // TODO: HBsmith DEV-12386, DEV-13531
-        userAgent?: string, // TODO: HBsmith DEV-13549
+        appKey?: string, // TODO: HBsmith
+        userAgent?: string, // TODO: HBsmith
     ): WebsocketProxyOverAdb {
-        // TODO: HBsmith DEV-12387, DEV-13521, DEV-14465
+        // TODO: HBsmith
         const service = new WebsocketProxyOverAdb(ws, udid);
         this.apiCreateSession(ws, udid, userAgent)
             .then(() => {

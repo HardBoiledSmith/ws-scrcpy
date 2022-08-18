@@ -15,7 +15,7 @@ import axios from 'axios';
 const MJPEG_SERVER_PORT = 9100;
 
 export interface WdaRunnerEvents {
-    'status-change': { status: WdaStatus; text?: string; code?: number };
+    'status-change': { status: WdaStatus; text?: string; code?: number; detail?: string };
     error: Error;
 }
 
@@ -51,17 +51,35 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     public static async getServer(udid: string): Promise<Server> {
         let server = this.servers.get(udid);
         if (!server) {
-            const port = await Utils.getPortWithLock();
-            server = await XCUITest.startServer(port, '127.0.0.1');
-            server.on('error', (...args: any[]) => {
-                console.error('Server Error:', args);
-            });
-            server.on('close', (...args: any[]) => {
-                console.info('Server Close:', args);
-            });
-            this.servers.set(udid, server);
-            this.serverPorts.set(udid, port);
+            // TODO: HBsmith
+            for (let ii = 0; ii < 2; ++ii) {
+                try {
+                    const port = await Utils.getPortWithLock(ii > 0);
+                    server = await XCUITest.startServer(port, '127.0.0.1');
+
+                    server.on('error', (...args: unknown[]) => {
+                        console.error('Server Error:', args);
+                    });
+                    server.on('close', (...args: unknown[]) => {
+                        console.info('Server Close:', args);
+                    });
+                    this.servers.set(udid, server);
+                    this.serverPorts.set(udid, port);
+                    break;
+                } catch (e) {
+                    console.error(`[${Utils.getTimeISOString()}] Failed to create XCUITest server: ${udid} / ${ii}`, e);
+                    if (ii >= 1) {
+                        throw e;
+                    }
+                }
+            }
+            //
         }
+        // TODO: HBsmith
+        if (!server) {
+            throw Error(`Failed to create XCUITest server: ${udid}`);
+        }
+        //
         return server;
     }
 
@@ -145,13 +163,17 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             const serverPort = WdaRunner.serverPorts.get(this.udid);
             WdaRunner.serverPorts.delete(this.udid);
 
-            for (const port of [serverPort, this.wdaLocalPort, this.mjpegServerPort]) {
+            let occupiedPorts = [serverPort, this.wdaLocalPort, this.mjpegServerPort];
+            occupiedPorts = occupiedPorts.filter((vv, ii, aa) => aa.indexOf(vv) === ii);
+            for (const port of occupiedPorts) {
                 try {
                     if (!port || port <= 0) {
                         continue;
                     }
-                    await Utils.fileUnlock(`${port}.lock`);
-                } catch (e) {}
+                    Utils.fileUnlock(`${port}.lock`);
+                } catch (e) {
+                    this.logger.error(`Failed to delete lock file: ${port}`, e);
+                }
             }
             //
         }, WdaRunner.SHUTDOWN_TIMEOUT);
@@ -246,23 +268,34 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             const data = await WdaRunner.apiGetDevice(this.udid);
             const webDriverAgentUrl = `http://${data['device_host']}:${data['device_port']}`;
             const remoteMjpegServerPort = MJPEG_SERVER_PORT;
-            const proxyPort: number = await Utils.getPortWithLock();
-
+            const platformVersion = data['os_version'] || '0.0';
             this.deviceName = data['alias'] || data['model'];
-            this.wdaLocalPort = proxyPort;
-            this.mjpegServerPort = proxyPort;
+
+            for (let ii = 0; ii < 2; ++ii) {
+                try {
+                    const proxyPort = await Utils.getPortWithLock(ii > 0);
+                    this.wdaLocalPort = proxyPort;
+                    this.mjpegServerPort = proxyPort;
+                    await server.driver.createSession({
+                        platformName: 'iOS',
+                        platformVersion: platformVersion, // TODO: HBsmith
+                        deviceName: this.deviceName, // TODO: HBsmith
+                        udid: this.udid,
+                        wdaLocalPort: this.wdaLocalPort,
+                        usePrebuiltWDA: true,
+                        mjpegServerPort: remoteMjpegServerPort,
+                        webDriverAgentUrl: webDriverAgentUrl, // TODO: HBsmith
+                    });
+                    break;
+                } catch (e) {
+                    this.logger.error(`Failed to create XCUITest server: ${this.udid} / ${ii}`, e);
+                    if (ii >= 1) {
+                        // noinspection ExceptionCaughtLocallyJS
+                        throw e;
+                    }
+                }
+            }
             //
-            await server.driver.createSession({
-                platformName: 'iOS',
-                deviceName: this.deviceName, // TODO: HBsmith
-                udid: this.udid,
-                wdaLocalPort: this.wdaLocalPort,
-                usePrebuiltWDA: true,
-                mjpegServerPort: remoteMjpegServerPort,
-                // TODO: HBsmith
-                webDriverAgentUrl: webDriverAgentUrl,
-                //
-            });
 
             /// #if USE_WDA_MJPEG_SERVER
             const { DEVICE_CONNECTIONS_FACTORY } = await import(
