@@ -37,7 +37,7 @@ export class Config {
     }
 
     constructor(private fullConfig: Configuration) {
-        // TODO: DEV-12387, DEV-12424
+        // TODO: HBsmith
         let configPath = process.env[EnvName.CONFIG_PATH];
         if (!configPath) {
             configPath = '/etc/ramiel/ws-scrcpy/settings_local.json';
@@ -123,7 +123,7 @@ export class Config {
         return this.fullConfig.runApplTracker === true;
     }
 
-    // TODO: DEV-12387, DEV-12826
+    // TODO: HBsmith
     public getRamielApiServerEndpoint(): string {
         if (!this.fullConfig.ramielApiServerEndpoint) {
             return '';
@@ -147,7 +147,7 @@ export class Config {
             return [
                 {
                     secure: false,
-                    // TODO: HBsmith DEV-13521
+                    // TODO: HBsmith
                     port: this.getServerPort(),
                     //
                 },

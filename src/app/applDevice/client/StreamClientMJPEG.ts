@@ -14,14 +14,14 @@ const TAG = '[StreamClientMJPEG]';
 
 export class StreamClientMJPEG
     extends StreamClient<ParamsStream>
-    // TODO: HBsmith DEV-14440
+    // TODO: HBsmith
     implements KeyEventListener {
     //
     public static ACTION = ACTION.STREAM_MJPEG;
     protected static players: Map<string, PlayerClass> = new Map<string, PlayerClass>();
 
     public static start(params: ParsedUrlQuery | ParamsStream): StreamClientMJPEG {
-        // TODO: HBsmith DEV-14440
+        // TODO: HBsmith
         const cc = new StreamClientMJPEG(params);
         KeyInputHandler.addEventListener(cc);
         return cc;

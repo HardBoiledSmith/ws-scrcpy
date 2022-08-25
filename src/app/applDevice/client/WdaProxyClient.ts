@@ -1,17 +1,17 @@
-import {ManagerClient} from '../../client/ManagerClient';
-import {MessageRunWdaResponse} from '../../../types/MessageRunWdaResponse';
-import {Message} from '../../../types/Message';
-import {ControlCenterCommand} from '../../../common/ControlCenterCommand';
-import {ParamsWdaProxy} from '../../../types/ParamsWdaProxy';
-import {ParsedUrlQuery} from 'querystring';
-import {ACTION} from '../../../common/Action';
+import { ManagerClient } from '../../client/ManagerClient';
+import { MessageRunWdaResponse } from '../../../types/MessageRunWdaResponse';
+import { Message } from '../../../types/Message';
+import { ControlCenterCommand } from '../../../common/ControlCenterCommand';
+import { ParamsWdaProxy } from '../../../types/ParamsWdaProxy';
+import { ParsedUrlQuery } from 'querystring';
+import { ACTION } from '../../../common/Action';
 import Util from '../../Util';
-import {ChannelCode} from '../../../common/ChannelCode';
-import {WDAMethod} from '../../../common/WDAMethod';
+import { ChannelCode } from '../../../common/ChannelCode';
+import { WDAMethod } from '../../../common/WDAMethod';
 import ScreenInfo from '../../ScreenInfo';
 import Position from '../../Position';
 import Point from '../../Point';
-import {TouchHandlerListener} from '../../interactionHandler/SimpleInteractionHandler';
+import { TouchHandlerListener } from '../../interactionHandler/SimpleInteractionHandler';
 
 export type WdaProxyClientEvents = {
     'wda-status': MessageRunWdaResponse;
@@ -122,7 +122,7 @@ export class WdaProxyClient
                 if (p) {
                     this.wait.delete(id);
                     p.resolve(json);
-                    // TODO: HBsmith DEV-14260
+                    // TODO: HBsmith
                     if (json['type'] === 'run-wda') {
                         this.emit('wda-status', json as MessageRunWdaResponse);
                     }
@@ -282,7 +282,7 @@ export class WdaProxyClient
                 udid: this.udid,
             },
         };
-        // TODO: HBsmith DEV-14062
+        // TODO: HBsmith
         if (appKey) message.data['appKey'] = appKey;
         if (userAgent) message.data['userAgent'] = userAgent;
         //

@@ -130,7 +130,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
         //
         this.mainApp = express();
         if (HttpServer.SERVE_STATIC && HttpServer.PUBLIC_DIR) {
-            // TODO: HBsmith DEV-11721
+            // TODO: HBsmith
             this.mainApp.use(this.CheckPermission);
             //
             this.mainApp.use(express.static(HttpServer.PUBLIC_DIR));

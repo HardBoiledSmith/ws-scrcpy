@@ -9,7 +9,7 @@ window.onload = async function (): Promise<void> {
     const parsedQuery = querystring.parse(hash);
     const action = parsedQuery.action;
 
-    // TODO: HBsmith DEV-12386, DEV-13549, DEV-14464
+    // TODO: HBsmith
     const search = location.search.replace('?', '');
     const parsedSearch = querystring.parse(search);
     const appKey = parsedSearch.app_key || null;

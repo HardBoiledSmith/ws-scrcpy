@@ -30,7 +30,7 @@ interface StreamReceiverEvents {
     encoders: string[];
     connected: void;
     disconnected: CloseEvent;
-    // TODO: HBsmith DEV-12387
+    // TODO: HBsmith
     deviceDisconnected: CloseEvent;
     //
 }

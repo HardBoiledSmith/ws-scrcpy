@@ -8,5 +8,6 @@ export interface MessageRunWdaResponse extends Message {
         status: WdaStatus;
         code?: number;
         text?: string;
+        detail?: string;
     };
 }

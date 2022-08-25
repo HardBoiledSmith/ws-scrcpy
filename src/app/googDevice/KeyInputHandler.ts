@@ -1,7 +1,7 @@
 import { KeyCodeControlMessage } from '../controlMessage/KeyCodeControlMessage';
 import KeyEvent from './android/KeyEvent';
 import { KeyToCodeMap } from './KeyToCodeMap';
-// TODO: DEV-13471
+// TODO HBsmith
 import { WindowsKeyCodeToKey } from './WindowsKeyCodeToKey';
 //
 
@@ -14,9 +14,10 @@ export class KeyInputHandler {
     private static readonly listeners: Set<KeyEventListener> = new Set();
     private static handler = (e: Event): void => {
         const event = e as KeyboardEvent;
-        // TODO: DEV-13471
+        // TODO HBsmith
         let keyCode = KeyToCodeMap.get(event.code);
         if (!keyCode) {
+            // noinspection JSDeprecatedSymbols
             const cc = WindowsKeyCodeToKey.get(event.keyCode);
             if (!cc) return;
             keyCode = KeyToCodeMap.get(cc);

@@ -210,7 +210,7 @@ export class StreamClientScrcpy
         }
     };
 
-    // TODO: HBsmith DEV-12387
+    // TODO: HBsmith
     public onDeviceDisconnected = (ev: CloseEvent): void => {
         const statusText = document.getElementById('control-header-device-status-text');
         if (statusText) {
@@ -287,7 +287,7 @@ export class StreamClientScrcpy
         this.streamReceiver.off('clientsStats', this.onClientsStats);
         this.streamReceiver.off('displayInfo', this.onDisplayInfo);
         this.streamReceiver.off('disconnected', this.onDisconnected);
-        // TODO: HBsmith DEV-12387
+        // TODO: HBsmith
         this.streamReceiver.off('deviceDisconnected', this.onDeviceDisconnected);
         //
 
@@ -392,7 +392,7 @@ export class StreamClientScrcpy
         streamReceiver.on('clientsStats', this.onClientsStats);
         streamReceiver.on('displayInfo', this.onDisplayInfo);
         streamReceiver.on('disconnected', this.onDisconnected);
-        // TODO: HBsmith DEV-12387
+        // TODO: HBsmith
         streamReceiver.on('deviceDisconnected', this.onDeviceDisconnected);
 
         KeyInputHandler.addEventListener(this);
