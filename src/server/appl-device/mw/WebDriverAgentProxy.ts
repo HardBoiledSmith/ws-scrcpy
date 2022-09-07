@@ -109,8 +109,7 @@ export class WebDriverAgentProxy extends Mw {
                     command,
                     WdaStatus.ERROR,
                     -1,
-                    e.text || '알 수 없는 이유로 장비 초기화에 실패하였습니다.',
-                    e.message,
+                    e.text || e.message || '알 수 없는 이유로 장비 초기화에 실패하였습니다.',
                 );
                 this.ws.close(4900, e.message);
                 this.logger.error(e);
