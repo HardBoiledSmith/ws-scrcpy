@@ -263,9 +263,11 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                     [y1, y2] = [y2, y1];
                                 }
 
-                                device.runShellCommandAdbKit(`input swipe ${xx} ${y1} ${xx} ${y2} 500`).then(() => {
-                                    this.logger.info(`Success to swipe: ${xx} ${y1} ${xx} ${y2} 500`);
-                                });
+                                return device
+                                    .runShellCommandAdbKit(`input swipe ${xx} ${y1} ${xx} ${y2} 500`)
+                                    .then(() => {
+                                        this.logger.info(`Success to swipe: ${xx} ${y1} ${xx} ${y2} 500`);
+                                    });
                             })
                             .catch((error) => {
                                 this.logger.error(error);

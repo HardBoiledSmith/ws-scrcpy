@@ -1,6 +1,6 @@
 import { TypedEmitter } from '../../../common/TypedEmitter';
 // TODO: HBsmith
-import { CommandControlMessage } from "../../controlMessage/CommandControlMessage";
+import { CommandControlMessage } from '../../controlMessage/CommandControlMessage';
 //
 
 export type PushResponse = { id: number; code: number };
@@ -16,7 +16,7 @@ export abstract class FilePushStream extends TypedEmitter<FilePushStreamEvents> 
     // TODO: HBsmith
     public sendEvent(message: CommandControlMessage): void {
         console.log(`Method not implemented: ${message}`);
-    };
+    }
     //
     public abstract sendEventNew(params: { id: number }): void;
     public abstract sendEventStart(params: { id: number; fileName: string; fileSize: number }): void;

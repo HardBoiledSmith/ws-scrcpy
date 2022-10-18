@@ -17,9 +17,9 @@ window.onload = async function (): Promise<void> {
 
     let wsUrl = parsedQuery['ws'];
     wsUrl = `${!!wsUrl ? wsUrl : ''}&user-agent=${userAgent}`;
-    parsedQuery['user-agent'] = userAgent; // TODO remove. ios only
+    parsedQuery['user-agent'] = userAgent;
     if (appKey) {
-        parsedQuery['app_key'] = appKey; // TODO remove. ios only
+        parsedQuery['app_key'] = appKey;
         wsUrl = `${wsUrl}&app_key=${appKey}`;
     }
     parsedQuery['ws'] = wsUrl;

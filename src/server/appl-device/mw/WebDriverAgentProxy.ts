@@ -84,7 +84,7 @@ export class WebDriverAgentProxy extends Mw {
                 if (this.wda.isStarted()) {
                     this.onStatusChange(command, WdaStatus.STARTED);
                     // TODO: HBsmith
-                    this.wda.setUpTest(this.appKey).catch((e) => {
+                    return this.wda.setUpTest(this.appKey).catch((e) => {
                         e.text = '장비 초기화 실패';
                         throw e;
                     });
@@ -92,7 +92,7 @@ export class WebDriverAgentProxy extends Mw {
                 } else {
                     // TODO: HBsmith
                     this.onStatusChange(command, WdaStatus.STARTED);
-                    this.wda
+                    return this.wda
                         .start()
                         .then(() => {
                             return this.wda?.setUpTest(this.appKey);
