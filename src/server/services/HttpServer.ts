@@ -166,6 +166,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 }
                 const options = { ...serverItem.options, cert, key };
                 server = https.createServer(options, this.mainApp);
+                // TODO: HBsmith
+                server.timeout = 300 * 1000;
+                //
                 proto = 'https';
             } else {
                 const options = serverItem.options ? { ...serverItem.options } : {};
@@ -196,6 +199,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                     });
                 }
                 server = http.createServer(options, currentApp);
+                // TODO: HBsmith
+                server.timeout = 300 * 1000;
+                //
             }
             this.servers.push({ server, port });
             server.listen(port, () => {

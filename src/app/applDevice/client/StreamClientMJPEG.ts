@@ -15,7 +15,8 @@ const TAG = '[StreamClientMJPEG]';
 export class StreamClientMJPEG
     extends StreamClient<ParamsStream>
     // TODO: HBsmith
-    implements KeyEventListener {
+    implements KeyEventListener
+{
     //
     public static ACTION = ACTION.STREAM_MJPEG;
     protected static players: Map<string, PlayerClass> = new Map<string, PlayerClass>();

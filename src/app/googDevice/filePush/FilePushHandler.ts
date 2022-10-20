@@ -1,7 +1,7 @@
 import { DragAndDropHandler, DragEventListener } from '../DragAndDropHandler';
 import { FilePushStream, PushResponse } from './FilePushStream';
 import { FilePushResponseStatus } from './FilePushResponseStatus';
-import {CommandControlMessage} from "../../controlMessage/CommandControlMessage";
+import { CommandControlMessage } from '../../controlMessage/CommandControlMessage';
 
 type Resolve = (response: PushResponse) => void;
 

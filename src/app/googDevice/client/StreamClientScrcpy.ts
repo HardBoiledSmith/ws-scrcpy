@@ -47,7 +47,8 @@ const TAG = '[StreamClientScrcpy]';
 
 export class StreamClientScrcpy
     extends BaseClient<ParamsStreamScrcpy, never>
-    implements KeyEventListener, InteractionHandlerListener {
+    implements KeyEventListener, InteractionHandlerListener
+{
     public static ACTION = 'stream';
     private static players: Map<string, PlayerClass> = new Map<string, PlayerClass>();
 
@@ -328,7 +329,7 @@ export class StreamClientScrcpy
             videoSettings = player.getVideoSettings();
         }
 
-        // TODO: hbsmith DEV
+        // TODO: hbsmith
         const controlHeaderView = document.createElement('div');
         controlHeaderView.className = 'control-header';
 
