@@ -6,6 +6,10 @@ import { Utils } from '../Utils';
 import express, { Express } from 'express';
 import { Config } from '../Config';
 import { TypedEmitter } from '../../common/TypedEmitter';
+// TODO: HBsmith
+import * as Sentry from '@sentry/node';
+import * as Tracing from '@sentry/tracing';
+//
 
 const DEFAULT_STATIC_DIR = path.join(__dirname, './public');
 
@@ -127,8 +131,18 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
     public async start(): Promise<void> {
         // TODO: HBsmith
         await Utils.initFileLock();
+
+        const app = express();
+        if (Utils.getGitPhase() === 'op') {
+            Sentry.init({
+                dsn: Config.getInstance().getSentryDSN(),
+                environment: Utils.getGitPhase(),
+                release: `${Config.getInstance().getSentryProject()}@${Utils.getAppVersion()}`,
+                integrations: [new Tracing.Integrations.Express({ app })],
+            });
+        }
+        this.mainApp = app;
         //
-        this.mainApp = express();
         if (HttpServer.SERVE_STATIC && HttpServer.PUBLIC_DIR) {
             // TODO: HBsmith
             this.mainApp.use(this.CheckPermission);

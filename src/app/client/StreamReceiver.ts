@@ -32,6 +32,7 @@ interface StreamReceiverEvents {
     disconnected: CloseEvent;
     // TODO: HBsmith
     deviceDisconnected: CloseEvent;
+    eventMessage: MessageEvent;
     //
 }
 
@@ -152,6 +153,9 @@ export class StreamReceiver<P extends ParamsStream> extends ManagerClient<Params
             }
 
             this.emit('video', new Uint8Array(e.data));
+        }
+        else {
+            this.emit('eventMessage', e);
         }
     }
 

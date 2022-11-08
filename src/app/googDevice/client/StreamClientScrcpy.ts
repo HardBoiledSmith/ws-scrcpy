@@ -218,6 +218,16 @@ export class StreamClientScrcpy
             statusText.textContent = ev.reason;
         }
     };
+
+    public onEventMessage = (ev: MessageEvent): void => {
+        const json = JSON.parse(ev.data);
+        if (json.type === 'git-info') {
+            const gitHashText = document.getElementById('control-footer-hash-name-text');
+            if (gitHashText) {
+                gitHashText.textContent = json.data
+            }
+        }
+    };
     //
 
     public onDisplayInfo = (infoArray: DisplayCombinedInfo[]): void => {
@@ -290,6 +300,7 @@ export class StreamClientScrcpy
         this.streamReceiver.off('disconnected', this.onDisconnected);
         // TODO: HBsmith
         this.streamReceiver.off('deviceDisconnected', this.onDeviceDisconnected);
+        this.streamReceiver.off('eventMessage', this.onEventMessage);
         //
 
         this.filePushHandler?.release();
@@ -338,6 +349,16 @@ export class StreamClientScrcpy
         controlHeaderView.appendChild(controlButtons2);
 
         document.body.appendChild(controlHeaderView);
+
+        const controlFooterView = document.createElement('div');
+        controlFooterView.className = 'control-footer';
+
+        const controlFooterText = document.createElement('div');
+        controlFooterText.id = 'control-footer-hash-name-text';
+        controlFooterText.className = 'control-footer-hash-name-text';
+        controlFooterView.appendChild(controlFooterText);
+
+        document.body.appendChild(controlFooterView);
         //
 
         const deviceView = document.createElement('div');
@@ -395,6 +416,7 @@ export class StreamClientScrcpy
         streamReceiver.on('disconnected', this.onDisconnected);
         // TODO: HBsmith
         streamReceiver.on('deviceDisconnected', this.onDeviceDisconnected);
+        streamReceiver.on('eventMessage', this.onEventMessage);
 
         KeyInputHandler.addEventListener(this);
         //

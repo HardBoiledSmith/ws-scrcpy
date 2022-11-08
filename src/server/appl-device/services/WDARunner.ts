@@ -10,6 +10,7 @@ import { WdaStatus } from '../../../common/WdaStatus';
 import { Config } from '../../Config';
 import { Logger, Utils } from '../../Utils';
 import axios from 'axios';
+import * as Sentry from '@sentry/node';
 //
 
 const MJPEG_SERVER_PORT = 9100;
@@ -155,6 +156,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                         this.server.close();
                     } catch (e) {
                         this.logger.error(e);
+                        Sentry.captureException(e, (scope) => {
+                            scope.setTag('ramiel_device_type', 'iOS');
+                            scope.setTag('ramiel_device_id', this.udid);
+                            scope.setTag('ramiel_message', e.ramiel_message);
+                            return scope;
+                        });
                     }
                 }
                 delete this.server;
@@ -361,14 +368,14 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
 
     public async setUpTest(appKey: string): Promise<void> {
         this.emit('status-change', { status: WdaStatus.SET_UP_DEVICE_INFO, text: this.deviceName });
+        this.emit('status-change', { status: WdaStatus.SET_UP_GIT_INFO, text: Utils.getGitInfo() });
         this.emit('status-change', { status: WdaStatus.SET_UP, text: '장비 초기화 중' });
 
         this.appKey = appKey;
         this.wdaEventInAction = true;
 
         if (!this.server) {
-            this.logger.error('No Server at setUpTest', this.udid);
-            return;
+            throw Error('No Server at setUpTest');
         }
 
         this.logger.info('setUpTest: Unlock the device');
@@ -424,6 +431,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             (<Function>ev)(driver)
                 .catch((e: Error) => {
                     this.logger.error(e);
+                    Sentry.captureException(e, (scope) => {
+                        scope.setTag('ramiel_device_type', 'iOS');
+                        scope.setTag('ramiel_device_id', this.udid);
+                        scope.setTag('ramiel_message', 'WebDriverAgent event error');
+                        return scope;
+                    });
                 })
                 .finally(() => {
                     this.wdaEventInAction = false;
@@ -448,10 +461,17 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 this.started = false;
                 this.starting = false;
 
+                const mm = 'WebDriverAgent process has been disconnected';
                 this.emit('status-change', {
                     status: WdaStatus.STOPPED,
                     code: -1,
-                    text: 'WebDriverAgent process has been disconnected',
+                    text: mm,
+                });
+                Sentry.captureException(new Error(mm), (scope) => {
+                    scope.setTag('ramiel_device_type', 'iOS');
+                    scope.setTag('ramiel_device_id', this.udid);
+                    scope.setTag('ramiel_message', mm);
+                    return scope;
                 });
             });
         }, 100);
@@ -473,8 +493,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         }
 
         if (!this.server) {
-            this.logger.error('No Server at tearDownTest', this.udid);
-            return;
+            throw Error('No Server at tearDownTest');
         }
 
         if (this.appKey) {
@@ -498,6 +517,10 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         await this.server.driver.mobilePressButton({ name: 'home' });
         this.logger.info('tearDownTest: Lock the device');
         await this.server.driver.lock();
+    }
+
+    public getDeviceName(): string | undefined {
+        return this.deviceName;
     }
     //
 }

@@ -45,8 +45,10 @@ export interface Configuration {
     remoteHostList?: HostsItem[];
 
     // TODO: HBsmith
-    serverPort?: number;
     aesKey?: string[];
     ramielApiServerEndpoint?: string;
+    serverPort?: number;
+    sentryDSN?: string;
+    sentryProject?: string;
     //
 }

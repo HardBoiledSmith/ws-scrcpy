@@ -210,6 +210,12 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
                     headerText.textContent = `${this.deviceName} (${this.udid})`;
                 }
                 break;
+            case WdaStatus.SET_UP_GIT_INFO:
+                const gitHashText = document.getElementById('control-footer-hash-name-text');
+                if (gitHashText && data.text) {
+                    gitHashText.textContent = data.text;
+                }
+                break;
             case WdaStatus.SET_UP:
             case WdaStatus.SET_UP_SCREEN_ON:
             case WdaStatus.END_SET_UP:
