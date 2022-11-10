@@ -79,6 +79,16 @@ export class QVHackToolBox2 {
         controlHeaderStatusText.id = 'control-header-device-status-text';
         controlHeaderStatusText.className = 'control-header-device-status-text';
         this.holder.appendChild(controlHeaderStatusText);
+
+        const controlFooterView = document.createElement('div');
+        controlFooterView.className = 'control-footer';
+
+        const controlFooterText = document.createElement('div');
+        controlFooterText.id = 'control-footer-hash-name-text';
+        controlFooterText.className = 'control-footer-hash-name-text';
+
+        document.body.appendChild(controlFooterView);
+        controlFooterView.appendChild(controlFooterText);
     }
 
     public static createToolBox(wdaConnection: WdaProxyClient): QVHackToolBox2 {

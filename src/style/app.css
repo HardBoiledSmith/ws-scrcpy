@@ -239,3 +239,20 @@ body.stream {
 .control-wrapper > input[type=checkbox]:checked + label > svg {
     fill: var(--svg-checkbox-bg-color);
 }
+
+.control-footer {
+    position: fixed;
+    bottom: 0;
+    padding: 5px;
+    height: 30px;
+    width: 100%;
+}
+
+.control-footer-hash-name-text {
+    float: right;
+    width: 40%;
+    margin: 5px;
+    font-size: 20px;
+    text-align: right;
+    color: white;
+}

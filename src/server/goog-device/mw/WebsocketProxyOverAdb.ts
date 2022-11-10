@@ -13,6 +13,7 @@ import qs from 'qs';
 import KeyEvent from '../../../app/googDevice/android/KeyEvent';
 import { Multiplexer } from '../../../packages/multiplexer/Multiplexer';
 import { ControlMessage } from '../../../app/controlMessage/ControlMessage';
+import * as Sentry from '@sentry/node'; // TODO: HBsmith
 //
 
 export class WebsocketProxyOverAdb extends WebsocketProxy {
@@ -114,24 +115,31 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     `[${tag}] success to create session. resp code: ${rr.status}`,
                 );
             })
-            .catch((error) => {
+            .catch((e) => {
                 let status;
                 try {
-                    status = 'response' in error && 'status' in error.response ? error.response.status : 'unknown1';
+                    status = 'response' in e && 'status' in e.response ? e.response.status : 'unknown1';
                 } catch {
-                    status = error.toString();
+                    status = e.toString();
                 }
                 console.error(Utils.getTimeISOString(), udid, `[${tag}] failed to create a session: ${status}`);
 
-                let msg = `[${this.TAG}] failed to create a session for ${udid}`;
-                if (!('response' in error)) msg = `undefined response in error`;
-                else if (409 === status) {
-                    const userAgent = 'user-agent' in error.response.data ? error.response.data['user-agent'] : '';
-                    msg = `사용 중인 장비입니다`;
-                    if (userAgent) msg += ` (${userAgent})`;
-                } else if (410 === status) msg = `장비의 연결이 끊어져 있습니다`;
-                ws.close(4900, msg);
-                throw error;
+                e.message = `[${this.TAG}] failed to create a session for ${udid}`;
+                if (!e.response) {
+                    e.ramiel_message = e.message = 'undefined response in error';
+                } else if (409 === status) {
+                    const userAgent = 'user-agent' in e.response.data ? e.response.data['user-agent'] : '';
+                    e.ramiel_message = e.message = '사용 중인 장비입니다';
+                    if (userAgent) e.message += ` (${userAgent})`;
+
+                    e.ramiel_contexts = {
+                        'User Agent': userAgent,
+                    };
+                } else if (410 === status) {
+                    e.ramiel_message = e.message = `장비의 연결이 끊어져 있습니다`;
+                }
+                ws.close(4900, e.message);
+                throw e;
             });
     }
 
@@ -162,14 +170,21 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             .then((rr) => {
                 this.logger.info(`[${tag}] success to delete a session. resp code: ${rr.status}`);
             })
-            .catch((error) => {
+            .catch((e) => {
                 let status;
                 try {
-                    status = 'response' in error && 'status' in error.response ? error.response.status : 'unknown1';
+                    status = 'response' in e && 'status' in e.response ? e.response.status : 'unknown1';
                 } catch {
-                    status = error.toString();
+                    status = e.toString();
                 }
-                this.logger.error(`[${tag}] failed to create a session: ${status}`);
+                const mm = `[${tag}] failed to create a session: ${status}`;
+                this.logger.error(mm);
+                Sentry.captureException(e, (scope) => {
+                    scope.setTag('ramiel_device_type', 'Android');
+                    scope.setTag('ramiel_device_id', this.udid);
+                    scope.setTag('ramiel_message', mm);
+                    return scope;
+                });
             });
     }
     //
@@ -194,10 +209,22 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             .then(() => {
                 return service.setUpTest(udid, appKey, userAgent);
             })
+            .then(() => {
+                return service.setUpGitInfo();
+            })
             .catch((e) => {
-                const msg = `[${this.TAG}] Failed to start service: ${e.message}`;
-                console.error(Utils.getTimeISOString(), udid, msg);
-                ws.close(4005, msg);
+                const mm = `[${this.TAG}] Failed to start service: ${e.message}`;
+                ws.close(4005, mm);
+                console.error(Utils.getTimeISOString(), udid, mm);
+                Sentry.captureException(e, (scope) => {
+                    scope.setTag('ramiel_device_type', 'Android');
+                    scope.setTag('ramiel_device_id', udid);
+                    scope.setTag('ramiel_message', e.ramiel_message || mm);
+                    if (e.ramiel_contexts) {
+                        scope.setContext('Ramiel', e.ramiel_contexts);
+                    }
+                    return scope;
+                });
             });
         //
         return service;
@@ -233,8 +260,12 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                             .then(() => {
                                 this.logger.info(`remove the installed apk: '${pathToApk}'`);
                             })
-                            .catch((ee) => {
-                                this.logger.error(`failed to install apk: '${fileName}'`, ee);
+                            .catch((e) => {
+                                Sentry.setContext('Ramiel', {
+                                    'File Name': fileName,
+                                });
+                                e.ramiel_message = 'Failed to install apk';
+                                throw e;
                             });
                         return;
                     }
@@ -269,15 +300,22 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                         this.logger.info(`Success to swipe: ${xx} ${y1} ${xx} ${y2} 500`);
                                     });
                             })
-                            .catch((error) => {
-                                this.logger.error(error);
+                            .catch((e) => {
+                                e.ramiel_message = 'Failed to swipe';
+                                throw e;
                             });
                         return;
                     }
                 }
             }
-        } catch (error) {
-            this.logger.error(error);
+        } catch (e) {
+            this.logger.error(e);
+            Sentry.captureException(e, (scope) => {
+                scope.setTag('ramiel_device_type', 'Android');
+                scope.setTag('ramiel_device_id', this.udid);
+                scope.setTag('ramiel_message', e.ramiel_message);
+                return scope;
+            });
         }
         super.onSocketMessage(event);
     }
@@ -291,9 +329,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
 
     private async setUpTest(udid: string, appKey?: string, userAgent?: string): Promise<void> {
         this.apiSessionCreated = true;
-        if (udid) {
-            this.udid = udid;
-        }
+        this.udid = udid;
         if (appKey) {
             this.appKey = appKey;
         }
@@ -340,7 +376,21 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             })
             .catch((e) => {
                 this.logger.error(e);
+                Sentry.captureException(e, (scope) => {
+                    scope.setTag('ramiel_device_type', 'Android');
+                    scope.setTag('ramiel_device_id', this.udid);
+                    scope.setTag('ramiel_message', 'Failed to run setUpTest');
+                    return scope;
+                });
             });
+    }
+
+    private async setUpGitInfo() {
+        this.sendMessage({
+            id: -1,
+            type: 'git-info',
+            data: Utils.getGitInfo(),
+        });
     }
 
     private tearDownTest(): void {

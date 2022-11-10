@@ -8,6 +8,7 @@ export enum WdaStatus {
     END_ACTION = 'END_ACTION',
     SET_UP = 'SET_UP',
     SET_UP_DEVICE_INFO = 'SET_UP_DEVICE_INFO',
+    SET_UP_GIT_INFO = 'SET_UP_GIT_INFO',
     SET_UP_SCREEN_ON = 'SET_UP_SCREEN_ON',
     END_SET_UP = 'END_SET_UP',
     //

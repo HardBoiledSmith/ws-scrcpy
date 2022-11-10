@@ -140,6 +140,14 @@ export class Config {
     getServerPort(): number {
         return this.fullConfig.serverPort || 28500 || DEFAULT_PORT;
     }
+
+    getSentryDSN(): string {
+        return this.fullConfig.sentryDSN || '';
+    }
+
+    getSentryProject(): string {
+        return this.fullConfig.sentryProject || '';
+    }
     //
 
     public getServers(): ServerItem[] {
