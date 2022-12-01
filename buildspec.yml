@@ -1,0 +1,38 @@
+version: 0.2
+
+env:
+  variables:
+    ARTIFACT_BUCKET_PATH: s3://hbsmith-codebuild-artifacts-ap-northeast-2-20210609/
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - |
+        echo "codebuild env: $CODEBUILD_WEBHOOK_HEAD_REF, $CODEBUILD_SOURCE_VERSION"
+        BRANCH_NAME=$([ -n "$CODEBUILD_WEBHOOK_HEAD_REF" ] && echo "$(echo $CODEBUILD_WEBHOOK_HEAD_REF | cut -d'/' -f3)" || echo "$CODEBUILD_SOURCE_VERSION")
+        BRANCH_NAME=$(echo $BRANCH_NAME | tr '[:upper:]' '[:lower:]')
+        ARTIFACT_FILE_NAME='bundle.js'
+      - npm install
+      - npm run dist:prod
+      - |
+          if [ "$BRANCH_NAME" = "op" ]; then
+            aws s3 cp "./dist/public/$ARTIFACT_FILE_NAME" $ARTIFACT_BUCKET_PATH
+          fi
+      - pip install -r _provisioning/requirements.txt
+  pre_build:
+    commands:
+      - export LC_ALL="en_US.utf8"
+  build:
+    commands:
+      - mkdir /var/log/ramiel
+      - cp $CODEBUILD_SRC_DIR/_provisioning/configuration/etc/nginx/nginx.conf /etc/nginx/nginx.conf
+      - mkdir /etc/nginx/servers
+      - cp $CODEBUILD_SRC_DIR/_provisioning/configuration/etc/nginx/servers/ramiel.conf /etc/nginx/servers/ramiel.conf
+      - nginx -t -c /etc/nginx/nginx.conf
+      - flake8 --config=flake8 .
+  post_build:
+    commands:
+      - cp PnPDaemon/_provisioning/configuration/etc/ramiel/PnPDaemon/settings_local_sample.py PnPDaemon/_provisioning/configuration/etc/ramiel/PnPDaemon/settings_local.py
+      - zip -r $ARTIFACT_FILE_NAME .
+      - aws s3 cp $ARTIFACT_FILE_NAME $ARTIFACT_BUCKET_PATH
