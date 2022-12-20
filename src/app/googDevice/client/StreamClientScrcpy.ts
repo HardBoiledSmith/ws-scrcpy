@@ -65,6 +65,9 @@ export class StreamClientScrcpy
     private filePushHandler?: FilePushHandler;
     private fitToScreen?: boolean;
     private readonly streamReceiver: StreamReceiverScrcpy;
+    // TODO: HBsmith
+    private readonly heartbeatTimer: NodeJS.Timeout;
+    //
 
     public static registerPlayer(playerClass: PlayerClass): void {
         if (playerClass.isSupported()) {
@@ -163,6 +166,10 @@ export class StreamClientScrcpy
         } finally {
             this.setBodyClass('stream');
         }
+
+        this.heartbeatTimer = setInterval(() => {
+            this.sendMessage(CommandControlMessage.createHeartbeatCommand());
+        }, 60 * 1000);
         //
     }
 
@@ -217,6 +224,7 @@ export class StreamClientScrcpy
         if (statusText) {
             statusText.textContent = ev.reason;
         }
+        clearInterval(this.heartbeatTimer);
     };
 
     public onEventMessage = (ev: MessageEvent): void => {

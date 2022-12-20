@@ -196,10 +196,9 @@ export class CommandControlMessage extends ControlMessage {
     // TODO: HBsmith
     public static createAdbControlCommand(value: number): CommandControlMessage {
         const event = new CommandControlMessage(ControlMessage.TYPE_ADB_CONTROL);
-        let offset = 0;
         const buffer = new Buffer(1 + 1);
-        offset += buffer.writeUInt8(event.type, offset);
-        buffer.writeUInt8(value, offset);
+        buffer.writeUInt8(event.type, 0);
+        buffer.writeUInt8(value, 1);
         event.buffer = buffer;
         return event;
     }
@@ -218,6 +217,15 @@ export class CommandControlMessage extends ControlMessage {
                 buffer.writeUInt8(byte, index + offset);
             });
         }
+        event.buffer = buffer;
+        return event;
+    }
+
+    public static createHeartbeatCommand(): CommandControlMessage {
+        const event = new CommandControlMessage(ControlMessage.TYPE_HEARTBEAT);
+        const buffer = new Buffer(1 + 1);
+        buffer.writeUInt8(event.type, 0);
+        buffer.writeUInt8(0, 1);
         event.buffer = buffer;
         return event;
     }
