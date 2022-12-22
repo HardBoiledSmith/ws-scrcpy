@@ -7,6 +7,7 @@ export class ControlCenterCommand {
     public static CONFIGURE_STREAM = 'configure_stream';
     public static RUN_WDA = 'run-wda';
     public static REQUEST_WDA = 'request-wda';
+    public static HEARTBEAT = 'heartbeat';  // TODO: HBsmith
 
     private id = -1;
     private type = '';
@@ -47,6 +48,7 @@ export class ControlCenterCommand {
             case this.UPDATE_INTERFACES:
             case this.CONFIGURE_STREAM:
             case this.RUN_WDA:
+            case this.HEARTBEAT:    // TODO: HBsmith
                 return command;
             default:
                 throw new Error(`Unknown command "${body.command}"`);

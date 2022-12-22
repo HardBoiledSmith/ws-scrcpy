@@ -22,6 +22,8 @@ export class WebDriverAgentProxy extends Mw {
     private userAgent: string;
     private apiSessionCreated: boolean;
     private logger: Logger;
+    private lastHeartbeat: number;
+    private heartbeatTimer: NodeJS.Timeout;
     //
 
     public static processChannel(ws: Multiplexer, code: string, data: ArrayBuffer): Mw | undefined {
@@ -47,6 +49,26 @@ export class WebDriverAgentProxy extends Mw {
         this.userAgent = '';
         this.apiSessionCreated = false;
         this.logger = new Logger(udid, 'iOS');
+        this.lastHeartbeat = Date.now();
+        this.heartbeatTimer = setInterval(() => {
+            if (Date.now() - this.lastHeartbeat < 120 * 1000) {
+                return;
+            }
+            if (this.wda) {
+                const message: MessageRunWdaResponse = {
+                    id: -1,
+                    type: 'run-wda',
+                    data: {
+                        udid,
+                        status: WdaStatus.ERROR,
+                        code: -1,
+                        text: 'Heartbeat timeout',
+                    },
+                };
+                this.sendMessage(message);
+            }
+            this.ws.close(4900, 'Heartbeat timeout');
+        }, 1000);
         //
     }
 
@@ -69,7 +91,7 @@ export class WebDriverAgentProxy extends Mw {
                         id,
                         type: 'run-wda',
                         data: {
-                            udid: udid,
+                            udid,
                             status: WdaStatus.STARTED,
                             code: -1,
                             text: 'WDA already started',
@@ -191,6 +213,11 @@ export class WebDriverAgentProxy extends Mw {
             case ControlCenterCommand.REQUEST_WDA:
                 this.requestWda(command);
                 break;
+            // TODO: HBsmith
+            case ControlCenterCommand.HEARTBEAT:
+                this.lastHeartbeat = Date.now();
+                break;
+            //
             default:
                 throw new Error(`Unsupported command: "${type}"`);
         }
@@ -201,6 +228,8 @@ export class WebDriverAgentProxy extends Mw {
         if (!this.apiSessionCreated || !this.udid) {
             return;
         }
+
+        clearInterval(this.heartbeatTimer);
 
         new Promise((resolve) => setTimeout(resolve, 3000))
             .then(() => {

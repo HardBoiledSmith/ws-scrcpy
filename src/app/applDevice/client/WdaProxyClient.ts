@@ -306,6 +306,20 @@ export class WdaProxyClient
         return this.sendMessage(message);
     }
 
+    // TODO: HBsmith
+    public async sendHeartbeat(): Promise<Message> {
+        if (!this.hasSession) {
+            throw Error('No session');
+        }
+        const message: Message = {
+            id: this.getNextId(),
+            type: ControlCenterCommand.HEARTBEAT,
+            data: {},
+        };
+        return this.sendMessage(message);
+    }
+    //
+
     protected supportMultiplexing(): boolean {
         return true;
     }
