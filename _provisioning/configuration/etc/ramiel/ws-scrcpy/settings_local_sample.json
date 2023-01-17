@@ -1,6 +1,7 @@
 {
-  "serverPort": 28500,
+  "HMAC_IDC_KEY": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "ramielApiServerEndpoint": "http://dv-sachiel.hbsmith.io",
   "sentryDSN": "https://5ab57e48a58c45de8cd0a356d7e1390d@o174541.ingest.sentry.io/4504053395292160",
-  "sentryProject": "ramiel"
+  "sentryProject": "ramiel",
+  "serverPort": 28500
 }

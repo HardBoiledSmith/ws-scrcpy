@@ -6,6 +6,7 @@ import qs from 'qs';
 import { createHmac } from 'crypto';
 import { execSync } from 'child_process';
 import gitRepoInfo from "git-repo-info";
+import { Config } from "./Config";
 //
 
 export class Utils {
@@ -64,9 +65,9 @@ export class Utils {
         return qs.stringify(params);
     }
 
-    public static getSignature(params: Record<string, unknown>, timestamp: number): string {
+    public static getSignature(params: Record<string, unknown>): string {
         const algorithm = 'sha1';
-        const privateKey = timestamp.toString();
+        const privateKey = Config.getInstance().getHMACIdcKey();
         const secretKey = privateKey + '&';
         let baseString = this.getBaseString(params);
         baseString = encodeURIComponent(baseString);

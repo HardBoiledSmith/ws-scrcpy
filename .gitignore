@@ -2,6 +2,6 @@
 /dist
 /build
 /.idea
-/settings_local.json
+settings_local.json
 .DS_Store
 .filelock
