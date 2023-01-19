@@ -107,7 +107,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             POST: api,
             timestamp: tt,
             'user-agent': userAgent,
-            signature: Utils.getSignature(pp, tt),
+            signature: Utils.getSignature(pp),
         });
         const url = `${host}${api}`;
         const tag = WebsocketProxyOverAdb.TAG;
@@ -165,7 +165,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             DELETE: api,
             timestamp: tt,
             'user-agent': this.userAgent,
-            signature: Utils.getSignature(pp, tt),
+            signature: Utils.getSignature(pp),
         });
         const url = `${host}${api}`;
         const tag = WebsocketProxyOverAdb.TAG;

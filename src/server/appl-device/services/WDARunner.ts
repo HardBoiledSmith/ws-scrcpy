@@ -344,7 +344,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         const data = {
             GET: api,
             timestamp: tt,
-            signature: Utils.getSignature(pp, tt),
+            signature: Utils.getSignature(pp),
         };
         const url = `${host}${api}`;
 

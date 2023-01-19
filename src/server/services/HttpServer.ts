@@ -9,6 +9,7 @@ import { TypedEmitter } from '../../common/TypedEmitter';
 // TODO: HBsmith
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
+import axios from "axios";
 //
 
 const DEFAULT_STATIC_DIR = path.join(__dirname, './public');
@@ -75,7 +76,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
     }
 
     // TODO: HBsmith
-    public CheckPermission(req: express.Request, res: express.Response, next: express.NextFunction): void {
+    public async CheckPermission(req: express.Request, res: express.Response, next: express.NextFunction) {
         if (req.hostname === 'localhost') {
             console.log(Utils.getTimeISOString(), 'Checking permission has been bypassed: host is', req.hostname);
         } else if (req.url === '/') {
@@ -83,40 +84,48 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             return;
         } else if (Object.keys(req.query).length != 0) {
             try {
-                const expireTimestampIn = 300;
+                const accessToken = req.query['access-token'];
 
-                const api = req.query['GET'];
-                const appKey = req.query.hasOwnProperty('app_key') ? req.query['app_key'] : null;
-                const timestamp = Number(req.query['timestamp']);
-                const userAgent = req.query['user-agent'];
-                const signature = req.query['signature'];
-
-                const curTimestamp = Utils.getTimestamp();
-                const td = curTimestamp - timestamp;
-                if (td > expireTimestampIn) {
-                    res.status(400).send('timestamp');
-                    return;
-                }
-
-                let pp;
-                if (appKey) {
-                    pp = {
-                        GET: api,
-                        app_key: appKey,
-                        timestamp: timestamp,
-                        'user-agent': userAgent,
-                    };
+                if (accessToken) {
+                    const udid = req.query['udid'];
+                    if (!udid) {
+                        res.status(401).send('UNAUTHORIZED');
+                        return;
+                    }
+                    try {
+                        await axios.get(`${Config.getInstance().getRamielApiServerEndpoint()}/real-devices/${udid}/`, {
+                            headers: { 'Authorization': `Bearer ${accessToken}` },
+                        });
+                    } catch (e) {
+                        res.status(401).send(e.response && e.response.status || 'UNAUTHORIZED');
+                        return;
+                    }
                 } else {
-                    pp = {
+                    const api = req.query['GET'];
+                    const appKey = req.query['app_key'];
+                    const userAgent = req.query['user-agent'];
+                    const timestamp = Number(req.query['timestamp']);
+                    const signature = req.query['signature'];
+
+                    if (Utils.getTimestamp() - timestamp > 300) {
+                        res.status(400).send('timestamp');
+                        return;
+                    }
+
+                    const pp = {
                         GET: api,
                         timestamp: timestamp,
                         'user-agent': userAgent,
                     };
-                }
-                const serverSignature = Utils.getSignature(pp, timestamp);
-                if (serverSignature != signature) {
-                    res.status(400).send('signature');
-                    return;
+                    if (appKey) {
+                        // @ts-ignore
+                        pp['app_key'] = appKey;
+                    }
+                    const serverSignature = Utils.getSignature(pp);
+                    if (serverSignature != signature) {
+                        res.status(400).send('signature');
+                        return;
+                    }
                 }
             } catch (e) {
                 res.status(400).send('BAD REQUEST');

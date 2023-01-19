@@ -45,7 +45,7 @@ export interface Configuration {
     remoteHostList?: HostsItem[];
 
     // TODO: HBsmith
-    aesKey?: string[];
+    HMAC_IDC_KEY?: string;
     ramielApiServerEndpoint?: string;
     serverPort?: number;
     sentryDSN?: string;

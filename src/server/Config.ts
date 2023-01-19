@@ -148,6 +148,10 @@ export class Config {
     getSentryProject(): string {
         return this.fullConfig.sentryProject || '';
     }
+
+    getHMACIdcKey(): string {
+        return this.fullConfig.HMAC_IDC_KEY || '';
+    }
     //
 
     public getServers(): ServerItem[] {
