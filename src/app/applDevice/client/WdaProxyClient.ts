@@ -221,7 +221,7 @@ export class WdaProxyClient
     }
 
     // TODO: HBsmith
-    public async pressButton2(type: string): Promise<void> {
+    public async pressCustomButton(type: string): Promise<void> {
         switch (type) {
             case 'unlock':
                 return this.requestWebDriverAgent(WDAMethod.UNLOCK);
@@ -233,6 +233,32 @@ export class WdaProxyClient
                 return this.requestWebDriverAgent(WDAMethod.SEND_KEYS, { keys });
             case 'terminateApp':
                 return this.requestWebDriverAgent(WDAMethod.TERMINATE_APP);
+            case 'swipeUp': {
+                if (!this.screenInfo) {
+                    return;
+                }
+                const { videoSize } = this.screenInfo;
+                const pointX = videoSize.width / 2;
+                const pointY = videoSize.height / 2;
+
+                const from = new Position(new Point(pointX, pointY + 150), videoSize);
+                const to = new Position(new Point(pointX, pointY - 150), videoSize);
+
+                return this.performScroll(from, to);
+            }
+            case 'swipeDown': {
+                if (!this.screenInfo) {
+                    return;
+                }
+                const { videoSize } = this.screenInfo;
+                const pointX = videoSize.width / 2;
+                const pointY = videoSize.height / 2;
+
+                const from = new Position(new Point(pointX, pointY - 150), videoSize);
+                const to = new Position(new Point(pointX, pointY + 150), videoSize);
+
+                return this.performScroll(from, to);
+            }
         }
     }
     //
