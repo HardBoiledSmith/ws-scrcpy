@@ -315,6 +315,22 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                             });
                         return;
                     }
+                    case ControlMessage.TYPE_ADB_TERMINATE_APP: {
+                        device
+                            .runShellCommandAdbKit('dumpsys window | grep -E \'mCurrentFocus\'')
+                            .then((rr) => {
+                                const packageName = rr.split('/')[0].split(' ')[2];
+                                if (packageName !== 'com.sec.android.app.launcher') {
+                                    return device.runShellCommandAdbKit(`am force-stop ${packageName}`);
+                                }
+                                return;
+                            })
+                            .catch((e) => {
+                                e.ramiel_message = 'Failed to termination';
+                                throw e;
+                            });
+                        return;
+                    }
                 }
             } else if (type === ControlMessage.TYPE_HEARTBEAT) {
                 this.lastHeartbeat = Date.now();

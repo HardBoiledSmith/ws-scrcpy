@@ -241,8 +241,8 @@ export class WdaProxyClient
                 const pointX = videoSize.width / 2;
                 const pointY = videoSize.height / 2;
 
-                const from = new Position(new Point(pointX, pointY + 150), videoSize);
-                const to = new Position(new Point(pointX, pointY - 150), videoSize);
+                const from = new Position(new Point(pointX, pointY + 200), videoSize);
+                const to = new Position(new Point(pointX, pointY - 200), videoSize);
 
                 return this.performScroll(from, to);
             }
@@ -254,8 +254,8 @@ export class WdaProxyClient
                 const pointX = videoSize.width / 2;
                 const pointY = videoSize.height / 2;
 
-                const from = new Position(new Point(pointX, pointY - 150), videoSize);
-                const to = new Position(new Point(pointX, pointY + 150), videoSize);
+                const from = new Position(new Point(pointX, pointY - 200), videoSize);
+                const to = new Position(new Point(pointX, pointY + 200), videoSize);
 
                 return this.performScroll(from, to);
             }
