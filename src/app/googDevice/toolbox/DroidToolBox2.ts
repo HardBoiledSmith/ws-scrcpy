@@ -11,6 +11,7 @@ import BtnSendText from '../../../public/images/buttons/btn-send-text.png';
 import {KeyCodeControlMessage} from '../../controlMessage/KeyCodeControlMessage';
 import {CommandControlMessage} from '../../controlMessage/CommandControlMessage';
 import {ControlMessage} from '../../controlMessage/ControlMessage';
+import BtnTerminateAppPng from "../../../public/images/buttons/btn-terminate-app.png";
 
 const BUTTONS = [
     {
@@ -50,6 +51,11 @@ const BUTTONS = [
     {
         title: 'SwipeDown',
         icon: BtnDoubleDown,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'TerminateApp',
+        icon: BtnTerminateAppPng,
         type: 'CommandControlMessage',
     },
 ];
@@ -146,6 +152,13 @@ export class DroidToolBox2 {
                     case 'SwipeDown': {
                         const event = CommandControlMessage.createAdbControlCommand(
                             ControlMessage.TYPE_ADB_CONTROL_SWIPE_DOWN,
+                        );
+                        client.sendMessage(event);
+                        break;
+                    }
+                    case 'TerminateApp': {
+                        const event = CommandControlMessage.createAdbControlCommand(
+                            ControlMessage.TYPE_ADB_TERMINATE_APP,
                         );
                         client.sendMessage(event);
                         break;
