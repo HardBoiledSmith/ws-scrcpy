@@ -259,6 +259,9 @@ export class WdaProxyClient
 
                 return this.performScroll(from, to);
             }
+            case 'lock': {
+                return this.requestWebDriverAgent(WDAMethod.LOCK);
+            }
         }
     }
     //

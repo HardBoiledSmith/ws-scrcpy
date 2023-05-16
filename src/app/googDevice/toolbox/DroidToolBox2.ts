@@ -1,17 +1,18 @@
 import KeyEvent from '../android/KeyEvent';
-import {Optional, ToolBoxElement} from '../../toolbox/ToolBoxElement';
-import {StreamClientScrcpy} from '../client/StreamClientScrcpy';
 import BtnUnlockPng from '../../../public/images/buttons/btn-unlock.png';
 import BtnBackPng from '../../../public/images/buttons/btn-back.png';
 import BtnDoubleUp from '../../../public/images/buttons/btn-double-up.png';
 import BtnDoubleDown from '../../../public/images/buttons/btn-double-down.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
+import BtnLock from '../../../public/images/buttons/btn-lock.png';
 import BtnRotatePng from '../../../public/images/buttons/btn-rotate.png';
 import BtnSendText from '../../../public/images/buttons/btn-send-text.png';
-import {KeyCodeControlMessage} from '../../controlMessage/KeyCodeControlMessage';
-import {CommandControlMessage} from '../../controlMessage/CommandControlMessage';
-import {ControlMessage} from '../../controlMessage/ControlMessage';
-import BtnTerminateAppPng from "../../../public/images/buttons/btn-terminate-app.png";
+import BtnTerminateAppPng from '../../../public/images/buttons/btn-terminate-app.png';
+import { CommandControlMessage } from '../../controlMessage/CommandControlMessage';
+import { ControlMessage } from '../../controlMessage/ControlMessage';
+import { KeyCodeControlMessage } from '../../controlMessage/KeyCodeControlMessage';
+import { Optional, ToolBoxElement } from '../../toolbox/ToolBoxElement';
+import { StreamClientScrcpy } from '../client/StreamClientScrcpy';
 
 const BUTTONS = [
     {
@@ -57,6 +58,12 @@ const BUTTONS = [
         title: 'TerminateApp',
         icon: BtnTerminateAppPng,
         type: 'CommandControlMessage',
+    },
+    {
+        title: 'Unlock',
+        code: KeyEvent.KEYCODE_SLEEP,
+        icon: BtnLock,
+        type: 'KeyCodeControlMessage',
     },
 ];
 

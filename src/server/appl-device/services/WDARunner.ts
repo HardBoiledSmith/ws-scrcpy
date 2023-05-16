@@ -233,6 +233,11 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 });
                 return;
             // TODO: HBsmith
+            case WDAMethod.LOCK:
+                this.wdaEvents.push((driver: XCUITestDriver) => {
+                    return driver.lock();
+                });
+                return;
             case WDAMethod.UNLOCK:
                 this.wdaEvents.push((driver: XCUITestDriver) => {
                     return driver.unlock();
