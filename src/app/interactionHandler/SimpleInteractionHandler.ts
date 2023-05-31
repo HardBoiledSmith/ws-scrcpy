@@ -5,7 +5,8 @@ import Position from '../Position';
 
 export interface TouchHandlerListener {
     performClick: (position: Position) => void;
-    performScroll: (from: Position, to: Position) => void;
+    performScroll: (from: Position, to: Position, holdAtStart: boolean) => void;
+    performTapLong: (position: Position) => void;
 }
 
 const TAG = '[SimpleTouchHandler]';
@@ -13,6 +14,11 @@ const TAG = '[SimpleTouchHandler]';
 export class SimpleInteractionHandler extends InteractionHandler {
     private startPosition?: Position;
     private endPosition?: Position;
+    // TODO: HBsmith
+    private startTime?: Date;
+    private holdAtStart = false;
+    private holdAtStartFlag = false;
+    //
     private static readonly touchEventsNames: InteractionEvents[] = ['mousedown', 'mouseup', 'mousemove'];
     private storage = new Map();
 
@@ -40,6 +46,11 @@ export class SimpleInteractionHandler extends InteractionHandler {
                 handled = true;
                 if (e.type === downEventName) {
                     this.startPosition = events[0].position;
+                    // TODO: HBsmith
+                    this.startTime = new Date();
+                    this.holdAtStart = false;
+                    this.holdAtStartFlag = false;
+                    //
                 } else {
                     if (this.startPosition) {
                         this.endPosition = events[0].position;
@@ -56,13 +67,22 @@ export class SimpleInteractionHandler extends InteractionHandler {
                         this.drawLine(this.startPosition.point, this.endPosition.point);
                     }
                 }
+                if (e.type === 'mousemove' && !this.holdAtStartFlag) {
+                    this.holdAtStartFlag = true;
+                    const duration = !this.startTime ? 0 : new Date().getTime() - this.startTime.getTime();
+                    if (duration > 500) this.holdAtStart = true;
+                }
                 if (e.type === 'mouseup') {
                     if (this.startPosition && this.endPosition) {
                         this.clearCanvas();
                         if (this.startPosition.point.distance(this.endPosition.point) < 10) {
-                            this.listener.performClick(this.endPosition);
+                            // TODO: HBsmith
+                            const duration = !this.startTime ? 0 : new Date().getTime() - this.startTime.getTime();
+                            if (duration < 500) this.listener.performClick(this.endPosition);
+                            else this.listener.performTapLong(this.endPosition);
+                            //
                         } else {
-                            this.listener.performScroll(this.startPosition, this.endPosition);
+                            this.listener.performScroll(this.startPosition, this.endPosition, this.holdAtStart);
                         }
                     }
                 }

@@ -9,5 +9,6 @@ export enum WDAMethod {
     LOCK = 'LOCK',
     UNLOCK = 'UNLOCK',
     TERMINATE_APP = 'TERMINATE_APP',
+    TAP_LONG = 'TAP_LONG',
     //
 }

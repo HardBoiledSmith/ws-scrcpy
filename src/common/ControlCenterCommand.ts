@@ -48,7 +48,7 @@ export class ControlCenterCommand {
             case this.UPDATE_INTERFACES:
             case this.CONFIGURE_STREAM:
             case this.RUN_WDA:
-            case this.HEARTBEAT:    // TODO: HBsmith
+            case this.HEARTBEAT: // TODO: HBsmith
                 return command;
             default:
                 throw new Error(`Unknown command "${body.command}"`);

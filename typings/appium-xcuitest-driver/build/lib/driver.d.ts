@@ -29,10 +29,12 @@ declare class XCUITestDriver extends BaseDriver {
     public wda: any;
     // TODO: HBsmith
     public activateApp(bundleId: string): Promise<void>;
-    public mobileLaunchApp(args: { bundleId: string }): Promise<any>;
-    public mobileGetActiveAppInfo(): Promise<any>;
-    public terminateApp(bundleId: string): Promise<boolean>;
     public isAppInstalled(bundleId: string): Promise<boolean>;
+    public mobileDragFromToForDuration(opts: any): Promise<void>;
+    public mobileGetActiveAppInfo(): Promise<any>;
+    public mobileLaunchApp(args: { bundleId: string }): Promise<any>;
+    public mobileTouchAndHold(opts: any): Promise<void>;
+    public terminateApp(bundleId: string): Promise<boolean>;
     public lock(): Promise<void>;
     public unlock(): Promise<void>;
     //
