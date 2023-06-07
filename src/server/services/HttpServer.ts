@@ -9,7 +9,7 @@ import { TypedEmitter } from '../../common/TypedEmitter';
 // TODO: HBsmith
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
-import axios from "axios";
+import axios from 'axios';
 //
 
 const DEFAULT_STATIC_DIR = path.join(__dirname, './public');
@@ -94,10 +94,10 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                     }
                     try {
                         await axios.get(`${Config.getInstance().getRamielApiServerEndpoint()}/real-devices/${udid}/`, {
-                            headers: { 'Authorization': `Bearer ${accessToken}` },
+                            headers: { Authorization: `Bearer ${accessToken}` },
                         });
                     } catch (e) {
-                        res.status(401).send(e.response && e.response.status || 'UNAUTHORIZED');
+                        res.status(401).send((e.response && e.response.status) || 'UNAUTHORIZED');
                         return;
                     }
                 } else {

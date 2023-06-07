@@ -317,7 +317,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     }
                     case ControlMessage.TYPE_ADB_TERMINATE_APP: {
                         device
-                            .runShellCommandAdbKit('dumpsys window | grep -E \'mCurrentFocus\'')
+                            .runShellCommandAdbKit("dumpsys window | grep -E 'mCurrentFocus'")
                             .then((rr) => {
                                 const packageName = rr.split('/')[0].split(' ')[2];
                                 if (packageName !== 'com.sec.android.app.launcher') {

@@ -202,9 +202,9 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             case WDAMethod.GET_SCREEN_WIDTH:
                 return WdaRunner.getScreenWidth(this.udid, driver);
             case WDAMethod.CLICK:
-                const [x, y] = [args.x, args.y];
+                const { x, y } = args;
                 this.wdaEvents.push((driver: XCUITestDriver) => {
-                    return driver.performTouch([{ action: 'tap', options: { x: x, y: y } }]);
+                    return driver.performTouch([{ action: 'tap', options: { x, y } }]);
                 });
                 return;
             case WDAMethod.PRESS_BUTTON:
@@ -214,8 +214,17 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 });
                 return;
             case WDAMethod.SCROLL:
-                const { from, to } = args;
+                const { from, to, holdAtStart } = args;
                 this.wdaEvents.push((driver: XCUITestDriver) => {
+                    if (holdAtStart) {
+                        return driver.mobileDragFromToForDuration({
+                            duration: 0.5,
+                            fromX: from.x,
+                            fromY: from.y,
+                            toX: to.x,
+                            toY: to.y,
+                        });
+                    }
                     return driver.performTouch([
                         { action: 'press', options: { x: from.x, y: from.y } },
                         { action: 'wait', options: { ms: 500 } },
@@ -254,6 +263,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                     });
                     return;
                 });
+            case WDAMethod.TAP_LONG:
+                this.wdaEvents.push((driver: XCUITestDriver) => {
+                    args.duration = 1.0;
+                    return driver.mobileTouchAndHold(args);
+                });
+                return;
             //
             default:
                 return `Unknown command: ${method}`;
@@ -433,6 +448,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             }
             this.wdaEventInAction = true;
             this.emit('status-change', { status: WdaStatus.IN_ACTION, text: '제어 중' });
+            // eslint-disable-next-line @typescript-eslint/ban-types
             (<Function>ev)(driver)
                 .catch((e: Error) => {
                     this.logger.error(e);

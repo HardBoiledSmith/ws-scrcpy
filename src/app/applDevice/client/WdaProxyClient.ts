@@ -43,7 +43,8 @@ const TAG = '[WdaProxyClient]';
 
 export class WdaProxyClient
     extends ManagerClient<ParamsWdaProxy, WdaProxyClientEvents>
-    implements TouchHandlerListener {
+    implements TouchHandlerListener
+{
     public static calculatePhysicalPoint(
         screenInfo: ScreenInfo,
         screenWidth: number,
@@ -244,7 +245,7 @@ export class WdaProxyClient
                 const from = new Position(new Point(pointX, pointY + 200), videoSize);
                 const to = new Position(new Point(pointX, pointY - 200), videoSize);
 
-                return this.performScroll(from, to);
+                return this.performScroll(from, to, false);
             }
             case 'swipeDown': {
                 if (!this.screenInfo) {
@@ -257,7 +258,7 @@ export class WdaProxyClient
                 const from = new Position(new Point(pointX, pointY - 200), videoSize);
                 const to = new Position(new Point(pointX, pointY + 200), videoSize);
 
-                return this.performScroll(from, to);
+                return this.performScroll(from, to, false);
             }
             case 'lock': {
                 return this.requestWebDriverAgent(WDAMethod.LOCK);
@@ -281,7 +282,22 @@ export class WdaProxyClient
         });
     }
 
-    public async performScroll(from: Position, to: Position): Promise<void> {
+    public async performTapLong(position: Position): Promise<void> {
+        if (!this.screenInfo) {
+            return;
+        }
+        const screenWidth = this.screenWidth || (await this.getScreenWidth());
+        const point = WdaProxyClient.calculatePhysicalPoint(this.screenInfo, screenWidth, position);
+        if (!point) {
+            return;
+        }
+        return this.requestWebDriverAgent(WDAMethod.TAP_LONG, {
+            x: point.x,
+            y: point.y,
+        });
+    }
+
+    public async performScroll(from: Position, to: Position, holdAtStart: boolean): Promise<void> {
         if (!this.screenInfo) {
             return;
         }
@@ -300,6 +316,7 @@ export class WdaProxyClient
                 x: toPoint.x,
                 y: toPoint.y,
             },
+            holdAtStart: holdAtStart,
         });
     }
 
