@@ -101,7 +101,7 @@ export class Utils {
     }
 
     private static checkExpiredFileLock(file: string): void {
-        const pp = `${Utils.PathToFileLock}/${file}`;
+        const pp = `${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}/${file}`;
         if (!fs.existsSync(pp)) {
             return;
         }
@@ -125,22 +125,27 @@ export class Utils {
     }
 
     private static fileLock(file: string): void {
-        const fd = fs.openSync(`${Utils.PathToFileLock}/${file}`, 'wx');
+        const fd = fs.openSync(`${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}/${file}`, 'wx');
         fs.closeSync(fd);
     }
 
     public static fileUnlock(file: string): void {
-        fs.unlinkSync(`${Utils.PathToFileLock}/${file}`);
+        fs.unlinkSync(`${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}/${file}`);
     }
 
     public static async initFileLock(): Promise<void> {
         try {
-            if (fs.existsSync(Utils.PathToFileLock)) {
-                fs.rmdirSync(Utils.PathToFileLock, { recursive: true });
-            }
             fs.mkdirSync(Utils.PathToFileLock);
+        } catch (e) {}
+
+        const pp = `${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}`;
+        try {
+            if (fs.existsSync(pp)) {
+                fs.rmdirSync(pp, { recursive: true });
+            }
+            fs.mkdirSync(pp);
         } catch (e) {
-            console.log(e);
+            console.error(e);
         }
     }
 
