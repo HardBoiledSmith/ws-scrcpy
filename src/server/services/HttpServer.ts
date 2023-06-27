@@ -88,13 +88,14 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
 
                 if (accessToken) {
                     const udid = req.query['udid'];
-                    if (!udid) {
+                    const teamName = req.query['team-name'];
+                    if (!udid || !teamName) {
                         res.status(401).send('UNAUTHORIZED');
                         return;
                     }
                     try {
                         await axios.get(`${Config.getInstance().getRamielApiServerEndpoint()}/real-devices/${udid}/`, {
-                            headers: { Authorization: `Bearer ${accessToken}` },
+                            headers: { Authorization: `Bearer ${accessToken}`, team_name: teamName },
                         });
                     } catch (e) {
                         res.status(401).send((e.response && e.response.status) || 'UNAUTHORIZED');
