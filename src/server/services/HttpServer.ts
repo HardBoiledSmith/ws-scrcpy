@@ -8,7 +8,6 @@ import { Config } from '../Config';
 import { TypedEmitter } from '../../common/TypedEmitter';
 // TODO: HBsmith
 import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
 import axios from 'axios';
 //
 
@@ -149,7 +148,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 dsn: Config.getInstance().getSentryDSN(),
                 environment: Utils.getGitPhase(),
                 release: `${Config.getInstance().getSentryProject()}@${Utils.getAppVersion()}`,
-                integrations: [new Tracing.Integrations.Express({ app })],
+                integrations: [new Sentry.Integrations.Express({ app })],
             });
         }
         this.mainApp = app;

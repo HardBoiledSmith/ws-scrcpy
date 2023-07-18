@@ -17,7 +17,6 @@
   "license": "MIT",
   "dependencies": {
     "@sentry/node": "^7.0.0",
-    "@sentry/tracing": "^7.0.0",
     "@devicefarmer/adbkit": "^2.11.3",
     "axios": "^0.21.1",
     "express": "^4.17.3",
