@@ -165,6 +165,12 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             const { MjpegProxyFactory } = await import('../mw/MjpegProxyFactory');
             this.mainApp.get('/mjpeg/:udid', new MjpegProxyFactory().proxyRequest);
             /// #endif
+
+            // TODO: HBsmith
+            this.mainApp.get('/echo', (_, res) => {
+                res.send();
+            });
+            //
         }
         const config = Config.getInstance();
         config.getServers().forEach((serverItem) => {
