@@ -7,10 +7,15 @@ import { createHmac } from 'crypto';
 import { execSync } from 'child_process';
 import gitRepoInfo from 'git-repo-info';
 import { Config } from './Config';
+/// #if INCLUDE_APPL
+import { WebDriverAgentProxy } from './appl-device/mw/WebDriverAgentProxy';
+/// #else
+import { WebsocketProxyOverAdb } from './goog-device/mw/WebsocketProxyOverAdb';
+/// #endif
 //
 
 export class Utils {
-    private static readonly PathToFileLock: string = '/tmp/ramiel_file_lock';
+    private static readonly PathToFileLock: string = `${os.homedir()}/.ramiel`;
 
     public static readonly BasePort = 38000;
     public static readonly StopPort = 40000;
@@ -100,7 +105,7 @@ export class Utils {
         });
     }
 
-    private static checkExpiredFileLock(file: string): void {
+    private static async checkExpiredFileLock(file: string): Promise<void> {
         const pp = `${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}/${file}`;
         if (!fs.existsSync(pp)) {
             return;
@@ -124,7 +129,9 @@ export class Utils {
         }
     }
 
-    private static fileLock(file: string): void {
+    private static async fileLock(file: string): Promise<void> {
+        await Utils.ensureFileLockDir();
+
         const fd = fs.openSync(`${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}/${file}`, 'wx');
         fs.closeSync(fd);
     }
@@ -133,11 +140,32 @@ export class Utils {
         fs.unlinkSync(`${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}/${file}`);
     }
 
-    public static async initFileLock(): Promise<void> {
-        try {
-            fs.mkdirSync(Utils.PathToFileLock);
-        } catch (e) {}
+    public static async initDevices(): Promise<void> {
+        /// #if INCLUDE_APPL
+        console.log('initDevices: iOS');
+        const iDevs = Utils.getIOSDevices();
+        iDevs.forEach((udid) => {
+            WebDriverAgentProxy.deleteSession(udid, 'ws-scrcpy initDevices');
+        });
+        /// #else
+        console.log('initDevices: Android');
+        const aDevs = Utils.getAndroidDevices();
+        aDevs.forEach((udid) => {
+            WebsocketProxyOverAdb.deleteSession(udid, 'ws-scrcpy initDevices');
+        });
+        /// #endif
+    }
 
+    public static async ensureFileLockDir(): Promise<void> {
+        const pp = `${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}`;
+        try {
+            fs.mkdirSync(pp, { recursive: true });
+        } catch (e) {
+            console.error(`[${Utils.getTimeISOString()}] Failed to create filelock dir`, e.stack);
+        }
+    }
+
+    public static async initFileLock(): Promise<void> {
         const pp = `${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}`;
         try {
             if (fs.existsSync(pp)) {
@@ -147,6 +175,8 @@ export class Utils {
         } catch (e) {
             console.error(e);
         }
+
+        await Utils.ensureFileLockDir();
     }
 
     private static getLastFileLock(): number {
@@ -190,8 +220,8 @@ export class Utils {
                     throw Error('No free port found');
                 }
                 const pp = `${port}.lock`;
-                Utils.checkExpiredFileLock(pp);
-                Utils.fileLock(pp);
+                await Utils.checkExpiredFileLock(pp);
+                await Utils.fileLock(pp);
                 break;
             } catch (e) {
                 if ('EEXIST' === e.code && i < 2) {
@@ -233,6 +263,24 @@ export class Utils {
             return execSync(`cd ${__dirname} && git rev-parse --verify HEAD`).toString().trim();
         } catch (e) {
             return 'ErrorHash';
+        }
+    }
+
+    public static getAndroidDevices(): string[] {
+        try {
+            const rr = execSync('adb devices | tail -n +2 | cut -f 1').toString().trim();
+            return rr.split('\n').filter(Boolean);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    public static getIOSDevices(): string[] {
+        try {
+            const rr = execSync('idevice_id -l').toString().trim();
+            return rr.split('\n').filter(Boolean);
+        } catch (e) {
+            return [];
         }
     }
     //

@@ -124,47 +124,40 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 );
             })
             .catch((e) => {
-                let status;
-                try {
-                    status = 'response' in e && 'status' in e.response ? e.response.status : 'unknown1';
-                } catch {
-                    status = e.toString();
-                }
-                console.error(Utils.getTimeISOString(), udid, `[${tag}] failed to create a session: ${status}`);
-
                 e.message = `[${this.TAG}] failed to create a session for ${udid}`;
-                if (!e.response) {
-                    e.ramiel_message = e.message = 'undefined response in error';
-                } else if (409 === status) {
-                    const userAgent = 'user-agent' in e.response.data ? e.response.data['user-agent'] : '';
-                    e.ramiel_message = e.message = '사용 중인 장비입니다';
-                    if (userAgent) e.message += ` (${userAgent})`;
-
-                    e.ramiel_contexts = {
-                        'User Agent': userAgent,
-                    };
-                } else if (410 === status) {
-                    e.ramiel_message = e.message = `장비의 연결이 끊어져 있습니다`;
+                if (e.response) {
+                    if (409 === e.response.status) {
+                        const userAgent = e.response.data['user-agent'];
+                        e.ramiel_message = e.message = '사용 중인 장비입니다';
+                        if (userAgent) e.message += ` (${userAgent})`;
+                        e.ramiel_contexts = { 'User Agent': userAgent };
+                    } else if (410 === e.response.status) {
+                        e.ramiel_message = e.message = `장비의 연결이 끊어져 있습니다`;
+                    }
+                } else if (e.request) {
+                    e.ramiel_message = e.message = 'api server is not responding';
+                } else {
+                    e.ramiel_message = e.message;
                 }
                 ws.close(4900, e.message);
                 throw e;
             });
     }
 
-    private apiDeleteSession() {
+    public static deleteSession(udid: string, userAgent: string, logger: Logger | null = null) {
         const host = Config.getInstance().getRamielApiServerEndpoint();
-        const api = `/real-devices/${this.udid}/control/`;
+        const api = `/real-devices/${udid}/control/`;
         const hh = { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf8' };
         const tt = Utils.getTimestamp();
         const pp = {
             DELETE: api,
             timestamp: tt,
-            'user-agent': this.userAgent,
+            'user-agent': userAgent,
         };
         const data = qs.stringify({
             DELETE: api,
             timestamp: tt,
-            'user-agent': this.userAgent,
+            'user-agent': userAgent,
             signature: Utils.getSignature(pp),
         });
         const url = `${host}${api}`;
@@ -176,24 +169,23 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 data: data,
             })
             .then((rr) => {
-                this.logger.info(`[${tag}] success to delete a session. resp code: ${rr.status}`);
+                if (logger) logger.info(`[${tag}] success to delete a session. resp code: ${rr.status}`);
             })
             .catch((e) => {
                 let status;
                 try {
-                    status = 'response' in e && 'status' in e.response ? e.response.status : 'unknown1';
+                    status = 'response' in e && 'status' in e.response ? e.response.status : 'unknown_android';
                 } catch {
                     status = e.toString();
                 }
                 const mm = `[${tag}] failed to create a session: ${status}`;
-                this.logger.error(mm);
-                Sentry.captureException(e, (scope) => {
-                    scope.setTag('ramiel_device_type', 'Android');
-                    scope.setTag('ramiel_device_id', this.udid);
-                    scope.setTag('ramiel_message', mm);
-                    return scope;
-                });
+                if (logger) logger.error(mm);
             });
+    }
+
+    private apiDeleteSession() {
+        if (!this.udid) return;
+        WebsocketProxyOverAdb.deleteSession(this.udid, this.userAgent, this.logger);
     }
     //
 
@@ -223,7 +215,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             .catch((e) => {
                 const mm = `[${this.TAG}] Failed to start service: ${e.message}`;
                 ws.close(4005, mm);
-                console.error(Utils.getTimeISOString(), udid, mm);
+                console.error(Utils.getTimeISOString(), udid, e.stack);
                 Sentry.captureException(e, (scope) => {
                     scope.setTag('ramiel_device_type', 'Android');
                     scope.setTag('ramiel_device_id', udid);
@@ -231,6 +223,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     if (e.ramiel_contexts) {
                         scope.setContext('Ramiel', e.ramiel_contexts);
                     }
+                    scope.setExtra('ramiel_stack', e.stack);
                     return scope;
                 });
             });
@@ -291,6 +284,8 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 return device.runShellCommandAdbKit('wm size | tail -1');
                             })
                             .then((rr) => {
+                                if (!rr) throw Error('Failed to get screen size');
+
                                 let [, ww, hh] = rr.match(/(\d+)x(\d+)/);
                                 if (isLandscape) {
                                     [ww, hh] = [hh, ww];
@@ -341,6 +336,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 scope.setTag('ramiel_device_type', 'Android');
                 scope.setTag('ramiel_device_id', this.udid);
                 scope.setTag('ramiel_message', e.ramiel_message);
+                scope.setExtra('ramiel_stack', e.stack);
                 return scope;
             });
         }
@@ -407,6 +403,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     scope.setTag('ramiel_device_type', 'Android');
                     scope.setTag('ramiel_device_id', this.udid);
                     scope.setTag('ramiel_message', 'Failed to run setUpTest');
+                    scope.setExtra('ramiel_stack', e.stack);
                     return scope;
                 });
             });
