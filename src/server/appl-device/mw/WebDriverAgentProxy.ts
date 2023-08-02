@@ -9,7 +9,6 @@ import Util from '../../../app/Util';
 import { WdaStatus } from '../../../common/WdaStatus';
 import { Config } from '../../Config';
 import { Utils, Logger } from '../../Utils'; // TODO: HBsmith
-import * as Sentry from '@sentry/node'; // TODO: HBsmith
 import qs from 'qs';
 import axios from 'axios';
 
