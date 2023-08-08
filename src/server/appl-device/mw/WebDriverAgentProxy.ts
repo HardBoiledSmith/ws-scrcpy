@@ -9,7 +9,6 @@ import Util from '../../../app/Util';
 import { WdaStatus } from '../../../common/WdaStatus';
 import { Config } from '../../Config';
 import { Utils, Logger } from '../../Utils'; // TODO: HBsmith
-import * as Sentry from '@sentry/node'; // TODO: HBsmith
 import qs from 'qs';
 import axios from 'axios';
 
@@ -131,16 +130,7 @@ export class WebDriverAgentProxy extends Mw {
                 const mm = e.text || e.message || '알 수 없는 이유로 장비 초기화에 실패하였습니다.';
                 this.onStatusChange(command, WdaStatus.ERROR, -1, mm);
                 this.ws.close(4900, e.message);
-                this.logger.error(e);
-                Sentry.captureException(e, (scope) => {
-                    scope.setTag('ramiel_device_type', 'iOS');
-                    scope.setTag('ramiel_device_id', udid);
-                    scope.setTag('ramiel_message', e.ramiel_message || mm);
-                    if (e.ramiel_contexts) {
-                        scope.setContext('Ramiel', e.ramiel_contexts);
-                    }
-                    return scope;
-                });
+                this.logger.error(e.stack);
             });
         //
     }
@@ -278,29 +268,60 @@ export class WebDriverAgentProxy extends Mw {
                 this.logger.info(`[${tag}] success to create session. resp code: ${rr.status}`);
             })
             .catch((e) => {
+                e.message = `[${WebDriverAgentProxy.TAG}] failed to create a session for ${this.udid}`;
+                if (e.response) {
+                    if (409 === e.response.status) {
+                        const userAgent = e.response.data['user-agent'];
+                        e.ramiel_message = e.message = '사용 중인 장비입니다';
+                        if (userAgent) e.message += ` (${userAgent})`;
+                        e.ramiel_contexts = { 'User Agent': userAgent };
+                    } else if (410 === e.response.status) {
+                        e.ramiel_message = e.message = '장비의 연결이 끊어져 있습니다';
+                    }
+                } else if (e.request) {
+                    e.ramiel_message = e.message = 'api server is not responding';
+                } else {
+                    e.ramiel_message = e.message;
+                }
+                throw e;
+            });
+    }
+
+    public static deleteSession(udid: string, userAgent: string, logger: Logger | null = null) {
+        const host = Config.getInstance().getRamielApiServerEndpoint();
+        const api = `/real-devices/${udid}/control/`;
+        const hh = { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf8' };
+        const tt = Utils.getTimestamp();
+        const pp = {
+            DELETE: api,
+            timestamp: tt,
+            'user-agent': userAgent,
+        };
+        const data = qs.stringify({
+            DELETE: api,
+            timestamp: tt,
+            'user-agent': userAgent,
+            signature: Utils.getSignature(pp),
+        });
+        const url = `${host}${api}`;
+        const tag = WebDriverAgentProxy.TAG;
+
+        axios
+            .delete(url, {
+                headers: hh,
+                data: data,
+            })
+            .then((rr) => {
+                if (logger) logger.info(`[${tag}] success to delete session. resp code: ${rr.status}`);
+            })
+            .catch((e) => {
                 let status;
                 try {
-                    status = e.response && e.response.status ? e.response.status : 'unknown1';
+                    status = e.response && e.response.status ? e.response.status : 'unknown_iOS';
                 } catch {
                     status = e.toString();
                 }
-                console.error(Utils.getTimeISOString(), `[${tag}] failed to create a session: ${status}`);
-
-                e.message = `[${WebDriverAgentProxy.TAG}] failed to create a session for ${this.udid}`;
-                if (!e.response) {
-                    e.ramiel_message = e.message = 'undefined response in error';
-                } else if (409 === status) {
-                    const userAgent = 'user-agent' in e.response.data ? e.response.data['user-agent'] : '';
-                    e.ramiel_message = e.message = '사용 중인 장비입니다';
-                    if (userAgent) e.message += ` (${userAgent})`;
-
-                    e.ramiel_contexts = {
-                        'User Agent': userAgent,
-                    };
-                } else if (410 === status) {
-                    e.ramiel_message = e.message = `장비의 연결이 끊어져 있습니다`;
-                }
-                throw e;
+                console.error(Utils.getTimeISOString(), `[${tag}] failed to delete a session: ${status}`);
             });
     }
 
@@ -334,13 +355,13 @@ export class WebDriverAgentProxy extends Mw {
                 this.logger.info(`[${tag}] success to delete a session. resp code: ${rr.status}`);
             })
             .catch((e) => {
-                let status;
-                try {
-                    status = 'response' in e && 'status' in e.response ? e.response.status : 'unknown1';
-                } catch {
-                    status = e.message;
+                if (e.response) {
+                    this.logger.error(`[${tag}] failed to create a session: ${e.response.status}`);
+                } else if (e.request) {
+                    this.logger.error(`[${tag}] failed to create a session: api server is not reponding`);
+                } else {
+                    this.logger.error(`[${tag}] failed to create a session: ${e.stack}`);
                 }
-                console.error(Utils.getTimeISOString(), `[${tag}] failed to create a session: ${status}`);
             });
     }
     //

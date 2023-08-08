@@ -189,6 +189,7 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
         if (!!data.text) msg += ` ${data.text}`;
         if (statusText) statusText.textContent = msg;
         if (data.detail) console.log(data.detail);
+        if (data.error) console.error(data.detail);
         this.emit('wda:status', data.status);
     }
     //

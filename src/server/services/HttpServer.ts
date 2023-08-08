@@ -95,10 +95,14 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                     try {
                         await axios.get(`${Config.getInstance().getRamielApiServerEndpoint()}/real-devices/${udid}/`, {
                             headers: { Authorization: `Bearer ${accessToken}` },
-                            params: { team_name: teamName }
+                            params: { team_name: teamName },
                         });
                     } catch (e) {
-                        res.status(401).send((e.response && e.response.status) || 'UNAUTHORIZED');
+                        if (e.response) {
+                            res.status(401).send('UNAUTHORIZED');
+                        } else {
+                            res.status(503).send('api server is not responding');
+                        }
                         return;
                     }
                 } else {
@@ -140,6 +144,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
 
     public async start(): Promise<void> {
         // TODO: HBsmith
+        await Utils.initDevices();
         await Utils.initFileLock();
 
         const app = express();
