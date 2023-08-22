@@ -221,13 +221,12 @@ export class WebDriverAgentProxy extends Mw {
 
         clearInterval(this.heartbeatTimer);
 
-        new Promise((resolve) => setTimeout(resolve, 3000))
-            .then(() => {
-                return this.wda?.tearDownTest().catch((e) => {
-                    this.logger.error(e);
-                });
-            })
-            .finally(() => {
+        new Promise((resolve) => setTimeout(resolve, 3000)).then(async () => {
+            try {
+                await this.wda?.tearDownTest();
+            } catch (e) {
+                this.logger.error(e);
+            } finally {
                 super.release();
                 if (this.wda) {
                     this.wda.release();
@@ -236,7 +235,8 @@ export class WebDriverAgentProxy extends Mw {
                 setTimeout(() => {
                     this.apiDeleteSession();
                 }, 3000);
-            });
+            }
+        });
         //
     }
 

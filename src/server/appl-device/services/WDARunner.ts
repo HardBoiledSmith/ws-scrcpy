@@ -461,22 +461,38 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             }
             this.wdaEventInAction = true;
             this.emit('status-change', { status: WdaStatus.IN_ACTION, text: '제어 중' });
-            // eslint-disable-next-line @typescript-eslint/ban-types
-            try {
+
+            for (let ii = 0; ii < 3; ii++) {
                 // eslint-disable-next-line @typescript-eslint/ban-types
-                await (<Function>ev)(driver);
-                this.emit('status-change', { status: WdaStatus.END_ACTION, text: '제어 완료' });
-            } catch (e) {
-                this.logger.error(e);
-                this.emit('status-change', {
-                    status: WdaStatus.END_ACTION,
-                    text: '제어 실패',
-                    error: e.stack || e.message || e,
-                });
-            } finally {
-                this.wdaEventInAction = false;
-                this.emit('status-change', { status: WdaStatus.END_ACTION, text: '제어 완료' });
+                try {
+                    // eslint-disable-next-line @typescript-eslint/ban-types
+                    await (<Function>ev)(driver);
+                    this.emit('status-change', { status: WdaStatus.END_ACTION, text: '제어 완료' });
+                    break;
+                } catch (e) {
+                    if (
+                        typeof e.stack === 'string' &&
+                        e.stack.include(
+                            'Invalid parameter not satisfying: point.x != INFINITY && point.y != INFINITY',
+                        ) &&
+                        ii < 2
+                    ) {
+                        this.logger.info(`[WdaEventTimer] Retry the event ${ii + 1}/3: ${e.message}`);
+                        await Utils.sleep(500);
+                        continue;
+                    }
+
+                    this.logger.error(e);
+                    this.emit('status-change', {
+                        status: WdaStatus.END_ACTION,
+                        text: '제어 실패',
+                        error: e.stack || e.message || e,
+                    });
+                    break;
+                }
             }
+
+            this.wdaEventInAction = false;
         }, 100);
         this.wdaProcessId = await Utils.getProcessId(`xcodebuild.+${this.udid}`);
         if (!this.wdaProcessId) {
