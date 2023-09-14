@@ -16,7 +16,7 @@
   "author": "Sergey Volkov <s.volkov@netris.ru>",
   "license": "MIT",
   "dependencies": {
-    "@sentry/node": "^7.0.0",
+    "@sentry/node": "7.65.0",
     "@devicefarmer/adbkit": "^2.11.3",
     "axios": "^0.21.1",
     "express": "^4.17.3",
