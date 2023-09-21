@@ -12,6 +12,7 @@ import { WebDriverAgentProxy } from './appl-device/mw/WebDriverAgentProxy';
 /// #else
 import { WebsocketProxyOverAdb } from './goog-device/mw/WebsocketProxyOverAdb';
 /// #endif
+process.env.PATH += ':/opt/homebrew/bin/';
 //
 
 export class Utils {
