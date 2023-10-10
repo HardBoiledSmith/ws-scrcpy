@@ -229,6 +229,24 @@ export class CommandControlMessage extends ControlMessage {
         event.buffer = buffer;
         return event;
     }
+
+    public static createBardielSetTextCommand(text: string): CommandControlMessage {
+        const event = new CommandControlMessage(ControlMessage.TYPE_BARDIEL_CONTROL);
+        const textBytes: Uint8Array | null = text ? Util.stringToUtf8ByteArray(text) : null;
+        const textLength = textBytes ? textBytes.length : 0;
+        let offset = 0;
+        const buffer = Buffer.alloc(1 + 1 + 4 + textLength);
+        offset = buffer.writeUInt8(event.type, offset);
+        offset = buffer.writeUInt8(ControlMessage.TYPE_BARDIEL_SET_TEXT, offset);
+        offset = buffer.writeInt32BE(textLength, offset);
+        if (textBytes) {
+            textBytes.forEach((byte: number, index: number) => {
+                buffer.writeUInt8(byte, index + offset);
+            });
+        }
+        event.buffer = buffer;
+        return event;
+    }
     //
 
     private buffer?: Buffer;

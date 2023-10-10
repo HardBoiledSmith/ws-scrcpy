@@ -280,6 +280,9 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                     return driver.mobileTouchAndHold(args);
                 });
                 return;
+            case WDAMethod.REBOOT:
+                Utils.rebootIOSDevice(this.udid);
+                return;
             //
             default:
                 return `Unknown command: ${method}`;

@@ -90,6 +90,13 @@ export class WebsocketProxy extends Mw {
         }
     }
 
+    // TODO: Remove code below after replace all devices to bardiel.
+    protected onSocketMessageRaw(data: WS.Data): void {
+        if (this.remoteSocket) {
+            this.remoteSocket.send(data);
+        }
+    }
+
     public release(): void {
         if (this.released) {
             return;

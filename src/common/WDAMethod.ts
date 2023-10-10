@@ -10,5 +10,6 @@ export enum WDAMethod {
     UNLOCK = 'UNLOCK',
     TERMINATE_APP = 'TERMINATE_APP',
     TAP_LONG = 'TAP_LONG',
+    REBOOT = 'REBOOT',
     //
 }
