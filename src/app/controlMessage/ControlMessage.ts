@@ -26,9 +26,6 @@ export class ControlMessage {
     public static TYPE_ADB_REBOOT = 4;
 
     public static TYPE_HEARTBEAT = 201;
-
-    public static TYPE_BARDIEL_CONTROL = 202;
-    public static TYPE_BARDIEL_SET_TEXT = 0;
     //
 
     constructor(readonly type: number) {}

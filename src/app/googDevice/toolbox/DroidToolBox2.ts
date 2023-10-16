@@ -146,7 +146,13 @@ export class DroidToolBox2 {
                         if (!text) {
                             break;
                         }
-                        client.sendMessage(CommandControlMessage.createBardielSetTextCommand(text));
+                        client.sendMessage(CommandControlMessage.createSetClipboardCommand(text));
+
+                        const kk = KeyEvent.KEYCODE_PASTE;
+                        let eventPasteKey = new KeyCodeControlMessage(KeyEvent.ACTION_DOWN, kk, 0, 0);
+                        client.sendMessage(eventPasteKey);
+                        eventPasteKey = new KeyCodeControlMessage(KeyEvent.ACTION_UP, kk, 0, 0);
+                        client.sendMessage(eventPasteKey);
                         break;
                     }
                     case 'SwipeUp': {
