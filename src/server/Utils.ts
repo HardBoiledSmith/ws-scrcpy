@@ -284,6 +284,14 @@ export class Utils {
             return [];
         }
     }
+
+    public static rebootIOSDevice(udid: string): void {
+        try {
+            execSync(`idevicediagnostics restart -u ${udid}`);
+        } catch (e) {
+            console.error(e);
+        }
+    }
     //
 }
 

@@ -255,19 +255,21 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         // AdbKit.install is not working
                         device
                             .runShellCommandAdbKit(`pm install -r '${pathToApk}'`)
-                            .then(() => {
-                                this.logger.info(`success to install apk: ${fileName}`);
-                                return device.runShellCommandAdbKit(`rm -f '${pathToApk}'`);
+                            .then((rr) => {
+                                if (rr === 'Success') {
+                                    this.logger.info(`success to install apk: ${fileName}`);
+                                    return device.runShellCommandAdbKit(`rm -f '${pathToApk}'`);
+                                } else if (rr === 'Failure [INSTALL_FAILED_TEST_ONLY: installPackageLI]') {
+                                    return device.runShellCommandAdbKit(`pm install -r -t '${pathToApk}'`);
+                                }
+                                return;
                             })
-                            .then(() => {
-                                this.logger.info(`remove the installed apk: '${pathToApk}'`);
-                            })
-                            .catch((e) => {
-                                Sentry.setContext('Ramiel', {
-                                    'File Name': fileName,
-                                });
-                                e.ramiel_message = 'Failed to install apk';
-                                throw e;
+                            .then((rr) => {
+                                if (rr === 'Success') {
+                                    this.logger.info(`success to install test apk: ${fileName}`);
+                                    return device.runShellCommandAdbKit(`rm -f '${pathToApk}'`);
+                                }
+                                return;
                             });
                         return;
                     }
@@ -308,6 +310,13 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 e.ramiel_message = 'Failed to swipe';
                                 throw e;
                             });
+                        return;
+                    }
+                    case ControlMessage.TYPE_ADB_REBOOT: {
+                        device.runShellCommandAdbKit('reboot').catch((e) => {
+                            e.ramiel_message = 'Failed to reboot';
+                            throw e;
+                        });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_TERMINATE_APP: {
@@ -392,10 +401,15 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             })
             .then((output) => {
                 this.logger.info(output ? output : `success to stop all of the apps: ${cmdAppStop}`);
-                return device.runShellCommandAdbKit(cmdAppStart);
+                if (this.appKey) {
+                    return device.runShellCommandAdbKit(cmdAppStart).then((output) => {
+                        this.logger.info(output ? output : `success to start the app: ${cmdAppStart}`);
+                    });
+                }
+                return;
             })
-            .then((output) => {
-                this.logger.info(output ? output : `success to start the app: ${cmdAppStart}`);
+            .then(() => {
+                this.logger.info('setup succeeded. ready to test.');
             })
             .catch((e) => {
                 this.logger.error(e);

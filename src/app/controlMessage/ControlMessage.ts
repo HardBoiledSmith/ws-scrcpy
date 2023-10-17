@@ -23,6 +23,7 @@ export class ControlMessage {
     public static TYPE_ADB_CONTROL_SWIPE_DOWN = 1;
     public static TYPE_ADB_INSTALL_APK = 2;
     public static TYPE_ADB_TERMINATE_APP = 3;
+    public static TYPE_ADB_REBOOT = 4;
 
     public static TYPE_HEARTBEAT = 201;
     //
