@@ -181,7 +181,7 @@ export class Utils {
     }
 
     private static getLastFileLock(): number {
-        let ll = fs.readdirSync(Utils.PathToFileLock);
+        let ll = fs.readdirSync(`${Utils.PathToFileLock}/${Config.getInstance().getServerPort()}`);
         ll = ll.filter((file) => /\d+\.lock$/.test(file));
         const aa: number[] = [];
         ll.forEach((ee) => {
