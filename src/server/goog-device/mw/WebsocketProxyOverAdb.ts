@@ -213,19 +213,26 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 return service.setUpGitInfo();
             })
             .catch((e) => {
-                const mm = `[${this.TAG}] Failed to start service: ${e.message}`;
+                let mm = '';
+                if (e.stack && e.stack.includes('/adbkit/lib/adb/')) {
+                    mm = `[${this.TAG}] 장비가 일시적으로 오프라인 상태입니다. 5분 뒤 다시 시도해주세요.`;
+                } else {
+                    const mm = `[${this.TAG}] 서비스 시작 실패: ${e.message}`;
+
+                    console.error(Utils.getTimeISOString(), udid, e.stack);
+                    Sentry.captureException(e, (scope) => {
+                        scope.setTag('ramiel_device_type', 'Android');
+                        scope.setTag('ramiel_device_id', udid);
+                        scope.setTag('ramiel_message', e.ramiel_message || mm);
+                        if (e.ramiel_contexts) {
+                            scope.setContext('Ramiel', e.ramiel_contexts);
+                        }
+                        scope.setExtra('ramiel_stack', e.stack);
+                        return scope;
+                    });
+                }
                 ws.close(4005, mm);
-                console.error(Utils.getTimeISOString(), udid, e.stack);
-                Sentry.captureException(e, (scope) => {
-                    scope.setTag('ramiel_device_type', 'Android');
-                    scope.setTag('ramiel_device_id', udid);
-                    scope.setTag('ramiel_message', e.ramiel_message || mm);
-                    if (e.ramiel_contexts) {
-                        scope.setContext('Ramiel', e.ramiel_contexts);
-                    }
-                    scope.setExtra('ramiel_stack', e.stack);
-                    return scope;
-                });
+                WebsocketProxyOverAdb.deleteSession(udid, userAgent || '');
             });
         //
         return service;
