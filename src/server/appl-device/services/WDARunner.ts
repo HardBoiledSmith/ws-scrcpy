@@ -475,7 +475,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 } catch (e) {
                     if (
                         typeof e.stack === 'string' &&
-                        e.stack.include(
+                        e.stack.includes(
                             'Invalid parameter not satisfying: point.x != INFINITY && point.y != INFINITY',
                         ) &&
                         ii < 2
