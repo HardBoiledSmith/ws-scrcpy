@@ -1,6 +1,7 @@
 import BtnDoubleUp from '../../../public/images/buttons/btn-double-up.png';
 import BtnDoubleDown from '../../../public/images/buttons/btn-double-down.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
+import BtnLaunch from '../../../public/images/buttons/btn-launch.png';
 import BtnLock from '../../../public/images/buttons/btn-lock.png';
 import BtnReboot from '../../../public/images/buttons/btn-reboot.png';
 import BtnRemove from '../../../public/images/buttons/btn-remove.png';
@@ -58,6 +59,12 @@ const BUTTONS = [
         name: 'reboot',
         icon: BtnReboot,
         type: 'reboot',
+    },
+    {
+        title: 'LaunchApp',
+        name: 'launchApp',
+        icon: BtnLaunch,
+        type: 'launchApp',
     },
     {
         title: 'RemoveApp',
@@ -150,6 +157,7 @@ export class QVHackToolBox2 {
                 case 'swipeDown':
                 case 'reboot':
                 case 'removeApp':
+                case 'launchApp':
                     button.addEventListener('click', (_, element) => {
                         if (!element.optional?.name) {
                             return;

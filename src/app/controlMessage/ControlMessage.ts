@@ -25,6 +25,7 @@ export class ControlMessage {
     public static TYPE_ADB_TERMINATE_APP = 3;
     public static TYPE_ADB_REBOOT = 4;
     public static TYPE_ADB_UNINSTALL_APK = 5;
+    public static TYPE_ADB_LAUNCH_APK = 6;
 
     public static TYPE_HEARTBEAT = 201;
     //

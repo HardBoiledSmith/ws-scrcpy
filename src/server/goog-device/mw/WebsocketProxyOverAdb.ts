@@ -351,6 +351,16 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         });
                         return;
                     }
+                    case ControlMessage.TYPE_ADB_LAUNCH_APK: {
+                        const bb = event.data.slice(6);
+                        const aa = bb.toString();
+                        const cc = `monkey -p '${aa}' -c android.intent.category.LAUNCHER 1`;
+                        device.runShellCommandAdbKit(cc).catch((e) => {
+                            e.ramiel_message = `Failed to uninstall apk: ${aa}`;
+                            throw e;
+                        });
+                        return;
+                    }
                 }
             } else if (type === ControlMessage.TYPE_HEARTBEAT) {
                 this.lastHeartbeat = Date.now();

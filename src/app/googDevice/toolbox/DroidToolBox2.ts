@@ -4,6 +4,7 @@ import BtnBackPng from '../../../public/images/buttons/btn-back.png';
 import BtnDoubleUp from '../../../public/images/buttons/btn-double-up.png';
 import BtnDoubleDown from '../../../public/images/buttons/btn-double-down.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
+import BtnLaunch from '../../../public/images/buttons/btn-launch.png';
 import BtnLock from '../../../public/images/buttons/btn-lock.png';
 import BtnReboot from '../../../public/images/buttons/btn-reboot.png';
 import BtnRemove from '../../../public/images/buttons/btn-remove.png';
@@ -70,6 +71,11 @@ const BUTTONS = [
     {
         title: 'Reboot',
         icon: BtnReboot,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'LaunchApp',
+        icon: BtnLaunch,
         type: 'CommandControlMessage',
     },
     {
@@ -198,7 +204,15 @@ export class DroidToolBox2 {
                         if (!appKey) {
                             break;
                         }
-                        client.sendMessage(CommandControlMessage.createAdbUninstallCommand(appKey));
+                        client.sendMessage(CommandControlMessage.createAdbUninstallAppCommand(appKey));
+                        break;
+                    }
+                    case 'LaunchApp': {
+                        const appKey = prompt('앱키를 입력해 주세요.');
+                        if (!appKey) {
+                            break;
+                        }
+                        client.sendMessage(CommandControlMessage.createAdbLaunchAppCommand(appKey));
                         break;
                     }
                 }
