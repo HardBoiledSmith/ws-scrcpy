@@ -11,5 +11,6 @@ export enum WDAMethod {
     TERMINATE_APP = 'TERMINATE_APP',
     TAP_LONG = 'TAP_LONG',
     REBOOT = 'REBOOT',
+    REMOVE_APP = 'REMOVE_APP',
     //
 }

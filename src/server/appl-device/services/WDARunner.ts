@@ -283,6 +283,18 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             case WDAMethod.REBOOT:
                 Utils.rebootIOSDevice(this.udid);
                 return;
+            case WDAMethod.REMOVE_APP:
+                return driver.mobileGetActiveAppInfo().then((appInfo) => {
+                    const bundleId = appInfo['bundleId'];
+                    if (bundleId === 'com.apple.springboard') {
+                        return;
+                    }
+                    this.wdaEvents.push((driver: XCUITestDriver) => {
+                        this.logger.info(`[WDA EVENT] REMOVE_APP - bundleId:${bundleId}`);
+                        return driver.removeApp(bundleId);
+                    });
+                    return;
+                });
             //
             default:
                 return `Unknown command: ${method}`;

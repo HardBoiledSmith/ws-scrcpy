@@ -3,6 +3,7 @@ import BtnDoubleDown from '../../../public/images/buttons/btn-double-down.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
 import BtnLock from '../../../public/images/buttons/btn-lock.png';
 import BtnReboot from '../../../public/images/buttons/btn-reboot.png';
+import BtnRemove from '../../../public/images/buttons/btn-remove.png';
 import BtnSendTextPng from '../../../public/images/buttons/btn-send-text.png';
 import BtnTerminateAppPng from '../../../public/images/buttons/btn-terminate-app.png';
 import BtnUnlockPng from '../../../public/images/buttons/btn-unlock.png';
@@ -57,6 +58,12 @@ const BUTTONS = [
         name: 'reboot',
         icon: BtnReboot,
         type: 'reboot',
+    },
+    {
+        title: 'RemoveApp',
+        name: 'removeApp',
+        icon: BtnRemove,
+        type: 'removeApp',
     },
 ];
 
@@ -142,6 +149,7 @@ export class QVHackToolBox2 {
                 case 'swipeUp':
                 case 'swipeDown':
                 case 'reboot':
+                case 'removeApp':
                     button.addEventListener('click', (_, element) => {
                         if (!element.optional?.name) {
                             return;
