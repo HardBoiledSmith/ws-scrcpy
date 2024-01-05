@@ -123,11 +123,8 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                         timestamp: timestamp,
                         'user-agent': userAgent,
                         ...(teamName && { 'team-name': teamName }),
+                        ...(appKey && { app_key: appKey }),
                     };
-                    if (appKey) {
-                        // @ts-ignore
-                        pp['app_key'] = appKey;
-                    }
                     const serverSignature = Utils.getSignature(pp);
                     if (serverSignature != signature) {
                         res.status(400).send('signature');
