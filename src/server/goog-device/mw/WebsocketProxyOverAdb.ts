@@ -79,7 +79,6 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         // TODO: HBsmith
         let appKey = '';
         let userAgent = '';
-        let teamName = '';
         if (parsedQuery) {
             if (parsedQuery['app_key']) {
                 appKey = parsedQuery['app_key'].toString();
@@ -87,17 +86,14 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             if (parsedQuery['user-agent']) {
                 userAgent = parsedQuery['user-agent'].toString();
             }
-            if (parsedQuery['team-name']) {
-                teamName = parsedQuery['team-name'].toString();
-            }
         }
 
-        return this.createProxyOverAdb(ws, udid, remote, path, appKey, userAgent, teamName);
+        return this.createProxyOverAdb(ws, udid, remote, path, appKey, userAgent);
         //
     }
 
     // TODO: HBsmith
-    private static async apiCreateSession(ws: WS, udid: string, userAgent?: string, teamName?: string) {
+    private static async apiCreateSession(ws: WS, udid: string, userAgent?: string) {
         const host = Config.getInstance().getRamielApiServerEndpoint();
         const api = `/real-devices/${udid}/control/`;
         const hh = { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf8' };
@@ -106,13 +102,11 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             POST: api,
             timestamp: tt,
             'user-agent': userAgent,
-            ...(teamName && { 'team-name': teamName }),
         };
         const data = qs.stringify({
             POST: api,
             timestamp: tt,
             'user-agent': userAgent,
-            ...(teamName && { 'team-name': teamName }),
             signature: Utils.getSignature(pp),
         });
         const url = `${host}${api}`;
@@ -132,9 +126,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             .catch((e) => {
                 e.message = `[${this.TAG}] failed to create a session for ${udid}`;
                 if (e.response) {
-                    if (403 === e.response.status) {
-                        e.ramiel_message = e.message = '사용 권한이 없습니다';
-                    } else if (409 === e.response.status) {
+                    if (409 === e.response.status) {
                         const userAgent = e.response.data['user-agent'];
                         e.ramiel_message = e.message = '사용 중인 장비입니다';
                         if (userAgent) e.message += ` (${userAgent})`;
@@ -204,11 +196,10 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         path?: string,
         appKey?: string, // TODO: HBsmith
         userAgent?: string, // TODO: HBsmith
-        teamName?: string, // TODO: HBsmith
     ): WebsocketProxyOverAdb {
         // TODO: HBsmith
         const service = new WebsocketProxyOverAdb(ws, udid);
-        this.apiCreateSession(ws, udid, userAgent, teamName)
+        this.apiCreateSession(ws, udid, userAgent)
             .then(() => {
                 return AdbUtils.forward(udid, remote);
             })
