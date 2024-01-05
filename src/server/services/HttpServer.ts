@@ -109,6 +109,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                     const api = req.query['GET'];
                     const appKey = req.query['app_key'];
                     const userAgent = req.query['user-agent'];
+                    const teamName = req.query['team-name'];
                     const timestamp = Number(req.query['timestamp']);
                     const signature = req.query['signature'];
 
@@ -121,6 +122,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                         GET: api,
                         timestamp: timestamp,
                         'user-agent': userAgent,
+                        ...(teamName && { 'team-name': teamName }),
                     };
                     if (appKey) {
                         // @ts-ignore

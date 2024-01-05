@@ -19,6 +19,7 @@ export class WebDriverAgentProxy extends Mw {
     // TODO: HBsmith
     private appKey: string;
     private userAgent: string;
+    private teamName: string;
     private apiSessionCreated: boolean;
     private logger: Logger;
     private lastHeartbeat: number;
@@ -46,6 +47,7 @@ export class WebDriverAgentProxy extends Mw {
         this.udid = udid;
         this.appKey = '';
         this.userAgent = '';
+        this.teamName = '';
         this.apiSessionCreated = false;
         this.logger = new Logger(udid, 'iOS');
         this.lastHeartbeat = Date.now();
@@ -78,6 +80,7 @@ export class WebDriverAgentProxy extends Mw {
         const data = command.getData();
         this.appKey = data.appKey;
         this.userAgent = data.userAgent;
+        this.teamName = data.teamName;
         //
 
         // TODO: HBsmith
@@ -250,11 +253,13 @@ export class WebDriverAgentProxy extends Mw {
             POST: api,
             timestamp: tt,
             'user-agent': this.userAgent,
+            ...(this.teamName && { 'team-name': this.teamName }),
         };
         const data = qs.stringify({
             POST: api,
             timestamp: tt,
             'user-agent': this.userAgent,
+            ...(this.teamName && { 'team-name': this.teamName }),
             signature: Utils.getSignature(pp),
         });
         const url = `${host}${api}`;
@@ -270,7 +275,9 @@ export class WebDriverAgentProxy extends Mw {
             .catch((e) => {
                 e.message = `[${WebDriverAgentProxy.TAG}] failed to create a session for ${this.udid}`;
                 if (e.response) {
-                    if (409 === e.response.status) {
+                    if (403 === e.response.status) {
+                        e.ramiel_message = e.message = '사용 권한이 없습니다';
+                    } else if (409 === e.response.status) {
                         const userAgent = e.response.data['user-agent'];
                         e.ramiel_message = e.message = '사용 중인 장비입니다';
                         if (userAgent) e.message += ` (${userAgent})`;
