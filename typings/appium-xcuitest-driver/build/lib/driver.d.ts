@@ -34,6 +34,7 @@ declare class XCUITestDriver extends BaseDriver {
     public mobileGetActiveAppInfo(): Promise<any>;
     public mobileLaunchApp(args: { bundleId: string }): Promise<any>;
     public mobileTouchAndHold(opts: any): Promise<void>;
+    public removeApp(bundleId: string): Promise<boolean>;
     public terminateApp(bundleId: string): Promise<boolean>;
     public lock(): Promise<void>;
     public unlock(): Promise<void>;

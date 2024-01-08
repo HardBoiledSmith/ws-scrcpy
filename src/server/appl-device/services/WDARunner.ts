@@ -283,6 +283,22 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             case WDAMethod.REBOOT:
                 Utils.rebootIOSDevice(this.udid);
                 return;
+            case WDAMethod.REMOVE_APP: {
+                const ii = args.bundleId;
+                this.wdaEvents.push((driver: XCUITestDriver) => {
+                    this.logger.info(`[WDA EVENT] REMOVE_APP - bundleId:${ii}`);
+                    return driver.removeApp(ii);
+                });
+                return;
+            }
+            case WDAMethod.LAUNCH_APP: {
+                const ii = args.bundleId;
+                this.wdaEvents.push((driver: XCUITestDriver) => {
+                    this.logger.info(`[WDA EVENT] LAUNCH_APP - bundleId:${ii}`);
+                    return driver.mobileLaunchApp({ bundleId: ii });
+                });
+                return;
+            }
             //
             default:
                 return `Unknown command: ${method}`;
