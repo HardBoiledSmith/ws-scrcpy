@@ -330,9 +330,14 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         device
                             .runShellCommandAdbKit("dumpsys window | grep -E 'mCurrentFocus'")
                             .then((rr) => {
-                                const packageName = rr.split('/')[0].split(' ')[2];
-                                if (packageName !== 'com.sec.android.app.launcher') {
-                                    return device.runShellCommandAdbKit(`am force-stop ${packageName}`);
+                                const mm = rr.match(/mCurrentFocus=Window\{.*\}/);
+                                let pp = mm ? mm[0] : '';
+                                if (!pp) {
+                                    return;
+                                }
+                                pp = pp.split('/')[0].split(' ')[2];
+                                if (pp !== 'com.sec.android.app.launcher') {
+                                    return device.runShellCommandAdbKit(`am force-stop ${pp}`);
                                 }
                                 return;
                             })
