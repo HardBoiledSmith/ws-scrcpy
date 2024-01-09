@@ -330,9 +330,14 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         device
                             .runShellCommandAdbKit("dumpsys window | grep -E 'mCurrentFocus'")
                             .then((rr) => {
-                                const packageName = rr.split('/')[0].split(' ')[2];
-                                if (packageName !== 'com.sec.android.app.launcher') {
-                                    return device.runShellCommandAdbKit(`am force-stop ${packageName}`);
+                                const mm = rr.match(/mCurrentFocus=Window\{.*\}/);
+                                let pp = mm ? mm[0] : '';
+                                if (!pp) {
+                                    return;
+                                }
+                                pp = pp.split('/')[0].split(' ')[2];
+                                if (pp !== 'com.sec.android.app.launcher') {
+                                    return device.runShellCommandAdbKit(`am force-stop ${pp}`);
                                 }
                                 return;
                             })
@@ -340,6 +345,25 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 e.ramiel_message = 'Failed to termination';
                                 throw e;
                             });
+                        return;
+                    }
+                    case ControlMessage.TYPE_ADB_UNINSTALL_APK: {
+                        const bb = event.data.slice(6);
+                        const appKey = bb.toString();
+                        device.runShellCommandAdbKit(`pm uninstall -k --user 0 ${appKey}`).catch((e) => {
+                            e.ramiel_message = `Failed to uninstall apk: ${appKey}`;
+                            throw e;
+                        });
+                        return;
+                    }
+                    case ControlMessage.TYPE_ADB_LAUNCH_APK: {
+                        const bb = event.data.slice(6);
+                        const aa = bb.toString();
+                        const cc = `monkey -p '${aa}' -c android.intent.category.LAUNCHER 1`;
+                        device.runShellCommandAdbKit(cc).catch((e) => {
+                            e.ramiel_message = `Failed to uninstall apk: ${aa}`;
+                            throw e;
+                        });
                         return;
                     }
                 }
