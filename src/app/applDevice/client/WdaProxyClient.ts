@@ -272,6 +272,15 @@ export class WdaProxyClient
                 window.close();
                 return this.requestWebDriverAgent(WDAMethod.REBOOT);
             }
+            case 'launchApp':
+            case 'removeApp': {
+                const bundleId = prompt('앱키를 입력해주세요.');
+                if (!bundleId) {
+                    return;
+                }
+                const tt = type === 'launchApp' ? WDAMethod.LAUNCH_APP : WDAMethod.REMOVE_APP;
+                return this.requestWebDriverAgent(tt, { bundleId });
+            }
         }
     }
     //

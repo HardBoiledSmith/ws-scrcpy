@@ -4,8 +4,10 @@ import BtnBackPng from '../../../public/images/buttons/btn-back.png';
 import BtnDoubleUp from '../../../public/images/buttons/btn-double-up.png';
 import BtnDoubleDown from '../../../public/images/buttons/btn-double-down.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
+import BtnLaunch from '../../../public/images/buttons/btn-launch.png';
 import BtnLock from '../../../public/images/buttons/btn-lock.png';
 import BtnReboot from '../../../public/images/buttons/btn-reboot.png';
+import BtnRemove from '../../../public/images/buttons/btn-remove.png';
 import BtnRotatePng from '../../../public/images/buttons/btn-rotate.png';
 import BtnSendText from '../../../public/images/buttons/btn-send-text.png';
 import BtnTerminateAppPng from '../../../public/images/buttons/btn-terminate-app.png';
@@ -69,6 +71,16 @@ const BUTTONS = [
     {
         title: 'Reboot',
         icon: BtnReboot,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'LaunchApp',
+        icon: BtnLaunch,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'RemoveApp',
+        icon: BtnRemove,
         type: 'CommandControlMessage',
     },
 ];
@@ -185,6 +197,22 @@ export class DroidToolBox2 {
                             ControlMessage.TYPE_ADB_TERMINATE_APP,
                         );
                         client.sendMessage(event);
+                        break;
+                    }
+                    case 'RemoveApp': {
+                        const appKey = prompt('앱키를 입력해 주세요.');
+                        if (!appKey) {
+                            break;
+                        }
+                        client.sendMessage(CommandControlMessage.createAdbUninstallAppCommand(appKey));
+                        break;
+                    }
+                    case 'LaunchApp': {
+                        const appKey = prompt('앱키를 입력해 주세요.');
+                        if (!appKey) {
+                            break;
+                        }
+                        client.sendMessage(CommandControlMessage.createAdbLaunchAppCommand(appKey));
                         break;
                     }
                 }
