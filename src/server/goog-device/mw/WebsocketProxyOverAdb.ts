@@ -367,14 +367,6 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         return;
                     }
                     case ControlMessage.TYPE_ADB_SEND_TEXT: {
-                        /*
-                        *   ime list -a -s
-                                 com.android.adbkeyboard/.AdbIME
-                            ime enable com.android.adbkeyboard/.AdbIME
-                            ime set com.android.adbkeyboard/.AdbIME
-                            am broadcast -a ADB_INPUT_TEXT --es msg '안녕하세요 만나서 반가워요 11234 abcd'
-                            ime reset
-                        * */
                         const bb = event.data.slice(6);
                         const text = bb.toString();
 
