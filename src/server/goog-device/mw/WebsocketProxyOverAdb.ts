@@ -366,6 +366,52 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         });
                         return;
                     }
+                    case ControlMessage.TYPE_ADB_SEND_TEXT: {
+                        const bb = event.data.slice(6);
+                        const text = bb.toString();
+
+                        let cc = 'ime list -a -s';
+                        const kk = 'com.android.adbkeyboard/.AdbIME';
+                        device
+                            .runShellCommandAdbKit(cc)
+                            .then((rr) => {
+                                if (!rr) throw Error('Failed to get ime list');
+
+                                const [tt] = rr.match(/com.android.adbkeyboard\/.AdbIME/);
+                                if (!tt) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
+
+                                cc = `ime enable ${kk}`;
+                                return device.runShellCommandAdbKit(cc);
+                            })
+                            .then((rr) => {
+                                if (!rr.match(/now enabled for/)) throw Error('Failed to enable ime');
+
+                                cc = `ime set ${kk}`;
+                                return device.runShellCommandAdbKit(cc);
+                            })
+                            .then((rr) => {
+                                if (!rr.match(/selected for/)) throw Error('Failed to set ime');
+
+                                return Utils.sleep(1000);
+                            })
+                            .then(() => {
+                                cc = `am broadcast -a ADB_INPUT_TEXT --es msg '${text}'`;
+                                return device.runShellCommandAdbKit(cc);
+                            })
+                            .then((rr) => {
+                                if (!rr.match(/Broadcast completed/)) throw Error('Failed to send text');
+                                return;
+                            })
+                            .catch((ee) => {
+                                ee.ramiel_message = `Failed to send text: ${ee.message}`;
+                                throw ee;
+                            })
+                            .finally(() => {
+                                cc = 'ime reset';
+                                return device.runShellCommandAdbKit(cc);
+                            });
+                        return;
+                    }
                 }
             } else if (type === ControlMessage.TYPE_HEARTBEAT) {
                 this.lastHeartbeat = Date.now();
