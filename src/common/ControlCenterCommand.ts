@@ -7,7 +7,7 @@ export class ControlCenterCommand {
     public static CONFIGURE_STREAM = 'configure_stream';
     public static RUN_WDA = 'run-wda';
     public static REQUEST_WDA = 'request-wda';
-    public static HEARTBEAT = 'heartbeat';  // TODO: HBsmith
+    public static HEARTBEAT = 'heartbeat'; //TODO: HBsmith
 
     private id = -1;
     private type = '';

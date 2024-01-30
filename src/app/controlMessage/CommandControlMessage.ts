@@ -257,6 +257,24 @@ export class CommandControlMessage extends ControlMessage {
         return event;
     }
 
+    public static createAdbSendTextCommand(text: string): CommandControlMessage {
+        const event = new CommandControlMessage(ControlMessage.TYPE_ADB_CONTROL);
+        const textBytes: Uint8Array = Util.stringToUtf8ByteArray(text);
+        const textLength = textBytes ? textBytes.length : 0;
+        let offset = 0;
+        const buffer = Buffer.alloc(1 + 1 + 4 + textLength);
+        offset = buffer.writeUInt8(event.type, offset);
+        offset = buffer.writeUInt8(ControlMessage.TYPE_ADB_SEND_TEXT, offset);
+        offset = buffer.writeInt32BE(textLength, offset);
+        if (textBytes) {
+            textBytes.forEach((byte: number, index: number) => {
+                buffer.writeUInt8(byte, index + offset);
+            });
+        }
+        event.buffer = buffer;
+        return event;
+    }
+
     public static createHeartbeatCommand(): CommandControlMessage {
         const event = new CommandControlMessage(ControlMessage.TYPE_HEARTBEAT);
         const buffer = new Buffer(1 + 1);
