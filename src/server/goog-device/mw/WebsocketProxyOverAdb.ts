@@ -314,15 +314,13 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                     });
                             })
                             .catch((e) => {
-                                e.ramiel_message = 'Failed to swipe';
-                                throw e;
+                                this.captureException(e, 'Failed to swipe');
                             });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_REBOOT: {
                         device.runShellCommandAdbKit('reboot').catch((e) => {
-                            e.ramiel_message = 'Failed to reboot';
-                            throw e;
+                            this.captureException(e, 'Failed to reboot');
                         });
                         return;
                     }
@@ -342,8 +340,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 return;
                             })
                             .catch((e) => {
-                                e.ramiel_message = 'Failed to termination';
-                                throw e;
+                                this.captureException(e, 'Failed to termination');
                             });
                         return;
                     }
@@ -351,8 +348,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         const bb = event.data.slice(6);
                         const appKey = bb.toString();
                         device.runShellCommandAdbKit(`pm uninstall -k --user 0 ${appKey}`).catch((e) => {
-                            e.ramiel_message = `Failed to uninstall apk: ${appKey}`;
-                            throw e;
+                            this.captureException(e, `Failed to uninstall apk: ${appKey}`);
                         });
                         return;
                     }
@@ -361,19 +357,26 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         const aa = bb.toString();
                         const cc = `monkey -p '${aa}' -c android.intent.category.LAUNCHER 1`;
                         device.runShellCommandAdbKit(cc).catch((e) => {
-                            e.ramiel_message = `Failed to uninstall apk: ${aa}`;
-                            throw e;
+                            this.captureException(e, `Failed to uninstall apk: ${aa}`);
                         });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_SEND_TEXT: {
                         const bb = event.data.slice(6);
                         const text = bb.toString();
-
-                        let cc = 'ime list -a -s';
                         const kk = 'com.android.adbkeyboard/.AdbIME';
+
+                        let cc = 'settings get secure default_input_method';
+                        let defaultInputMethod = '';
                         device
                             .runShellCommandAdbKit(cc)
+                            .then((rr) => {
+                                defaultInputMethod = rr.trim();
+                                if (!defaultInputMethod) throw Error('Failed to get default input method');
+
+                                cc = 'ime list -a -s';
+                                return device.runShellCommandAdbKit(cc);
+                            })
                             .then((rr) => {
                                 if (!rr) throw Error('Failed to get ime list');
 
@@ -403,12 +406,19 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 return;
                             })
                             .catch((ee) => {
-                                ee.ramiel_message = `Failed to send text: ${ee.message}`;
-                                throw ee;
+                                this.captureException(ee, `Failed to send text: ${ee.message}`);
                             })
                             .finally(() => {
                                 cc = 'ime reset';
-                                return device.runShellCommandAdbKit(cc);
+                                return device
+                                    .runShellCommandAdbKit(cc)
+                                    .catch(() => {
+                                        cc = `ime set ${defaultInputMethod}`;
+                                        return device.runShellCommandAdbKit(cc);
+                                    })
+                                    .catch((ee) => {
+                                        this.captureException(ee, 'Failed to set default ime');
+                                    });
                             });
                         return;
                     }
@@ -417,16 +427,20 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 this.lastHeartbeat = Date.now();
             }
         } catch (e) {
-            this.logger.error(e);
-            Sentry.captureException(e, (scope) => {
-                scope.setTag('ramiel_device_type', 'Android');
-                scope.setTag('ramiel_device_id', this.udid);
-                scope.setTag('ramiel_message', e.ramiel_message);
-                scope.setExtra('ramiel_stack', e.stack);
-                return scope;
-            });
+            this.captureException(e, e.ramiel_message || 'Failed to handle message');
         }
         super.onSocketMessage(event);
+    }
+
+    private captureException(e: Error, message: string): void {
+        this.logger.error(e);
+        Sentry.captureException(e, (scope) => {
+            scope.setTag('ramiel_device_type', 'Android');
+            scope.setTag('ramiel_device_id', this.udid);
+            scope.setTag('ramiel_message', message || e.message);
+            scope.setExtra('ramiel_stack', e.stack);
+            return scope;
+        });
     }
 
     private getDevice(): Device | null {
