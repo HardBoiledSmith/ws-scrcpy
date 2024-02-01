@@ -387,7 +387,8 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 return device.runShellCommandAdbKit(cc);
                             })
                             .then((rr) => {
-                                if (!rr.match(/now enabled for/)) throw Error('Failed to enable ime');
+                                if (!rr.match(/now enabled for/) && !rr.match(/already enabled/))
+                                    throw Error('Failed to enable ime');
 
                                 cc = `ime set ${kk}`;
                                 return device.runShellCommandAdbKit(cc);
