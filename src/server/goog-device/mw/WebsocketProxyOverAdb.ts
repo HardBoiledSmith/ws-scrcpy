@@ -21,6 +21,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
     private udid = '';
     private appKey = '';
     private userAgent = '';
+    private defaultIME = '';
     private apiSessionCreated = false;
     private logger: Logger;
     private lastHeartbeat: number = Date.now();
@@ -366,35 +367,26 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         const text = bb.toString();
                         const kk = 'com.android.adbkeyboard/.AdbIME';
 
-                        let cc = 'settings get secure default_input_method';
-                        let defaultInputMethod = '';
+                        let cc = 'ime list -a -s';
                         device
                             .runShellCommandAdbKit(cc)
                             .then((rr) => {
-                                defaultInputMethod = rr.trim();
-                                if (!defaultInputMethod) throw Error('Failed to get default input method');
-
-                                cc = 'ime list -a -s';
-                                return device.runShellCommandAdbKit(cc);
-                            })
-                            .then((rr) => {
-                                if (!rr) throw Error('Failed to get ime list');
-
-                                const [tt] = rr.match(/com.android.adbkeyboard\/.AdbIME/);
-                                if (!tt) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
+                                const tt = /com.android.adbkeyboard\/.AdbIME/;
+                                if (!tt.test(rr)) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
 
                                 cc = `ime enable ${kk}`;
                                 return device.runShellCommandAdbKit(cc);
                             })
                             .then((rr) => {
-                                if (!rr.match(/now enabled for/) && !rr.match(/already enabled/))
-                                    throw Error('Failed to enable ime');
+                                const tt = /enabled/;
+                                if (!tt.test(rr)) throw Error('Failed to enable ime');
 
                                 cc = `ime set ${kk}`;
                                 return device.runShellCommandAdbKit(cc);
                             })
                             .then((rr) => {
-                                if (!rr.match(/selected for/)) throw Error('Failed to set ime');
+                                const tt = /selected/;
+                                if (!tt.test(rr)) throw Error('Failed to set ime');
 
                                 return Utils.sleep(1000);
                             })
@@ -403,23 +395,19 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 return device.runShellCommandAdbKit(cc);
                             })
                             .then((rr) => {
-                                if (!rr.match(/Broadcast completed/)) throw Error('Failed to send text');
+                                const tt = /Broadcast completed/;
+                                if (!tt.test(rr)) throw Error('Failed to send text');
                                 return;
                             })
                             .catch((ee) => {
                                 this.captureException(ee, `Failed to send text: ${ee.message}`);
                             })
                             .finally(() => {
-                                cc = 'ime reset';
-                                return device
-                                    .runShellCommandAdbKit(cc)
-                                    .catch(() => {
-                                        cc = `ime set ${defaultInputMethod}`;
-                                        return device.runShellCommandAdbKit(cc);
-                                    })
-                                    .catch((ee) => {
-                                        this.captureException(ee, 'Failed to set default ime');
-                                    });
+                                if (!this.defaultIME) cc = 'ime reset';
+                                else cc = `ime set ${this.defaultIME}`;
+                                return device.runShellCommandAdbKit(cc).catch((ee) => {
+                                    this.captureException(ee, 'Failed to set default ime');
+                                });
                             });
                         return;
                     }
@@ -466,6 +454,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             return;
         }
 
+        const cmdGetIME = 'settings get secure default_input_method';
         const cmdMenu = `input keyevent ${KeyEvent.KEYCODE_MENU}`;
         const cmdHome = `input keyevent ${KeyEvent.KEYCODE_HOME}`;
         const cmdAppStop =
@@ -473,7 +462,11 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
 
         return device
-            .runShellCommandAdbKit(cmdMenu)
+            .runShellCommandAdbKit(cmdGetIME)
+            .then((output) => {
+                this.defaultIME = output.trim();
+                return device.runShellCommandAdbKit(cmdMenu);
+            })
             .then((output) => {
                 this.logger.info(output ? output : `success to send 1st KEYCODE_MENU: ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdMenu);
