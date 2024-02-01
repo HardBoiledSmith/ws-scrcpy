@@ -528,20 +528,25 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             return;
         }
 
+        const cmdSetIME = this.defaultIME ? `ime set ${this.defaultIME}` : 'ime reset';
         const cmdPower = `input keyevent ${KeyEvent.KEYCODE_POWER}`;
         const cmdAppStop =
             'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
 
         new Promise((resolve) => setTimeout(resolve, 3000))
-            .then((output) => {
-                this.logger.info(output ? output : `success to run a command: ${cmdPower}`);
-                return device.runShellCommandAdbKit(cmdAppStop);
-            })
             .then(() => {
-                return device.runShellCommandAdbKit(cmdPower);
+                return device.runShellCommandAdbKit(cmdSetIME);
+            })
+            .then((output) => {
+                this.logger.info(output ? output : `success to set default ime: ${cmdSetIME}`);
+                return device.runShellCommandAdbKit(cmdAppStop);
             })
             .then((output) => {
                 this.logger.info(output ? output : `success to stop all of running apps`);
+                return device.runShellCommandAdbKit(cmdPower);
+            })
+            .then((output) => {
+                this.logger.info(output ? output : `success to run a command: ${cmdPower}`);
             })
             .catch((e) => {
                 this.logger.error(e);
