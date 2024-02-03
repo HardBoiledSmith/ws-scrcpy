@@ -21,6 +21,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
     private udid = '';
     private appKey = '';
     private userAgent = '';
+    private defaultIME = '';
     private apiSessionCreated = false;
     private logger: Logger;
     private lastHeartbeat: number = Date.now();
@@ -314,15 +315,13 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                     });
                             })
                             .catch((e) => {
-                                e.ramiel_message = 'Failed to swipe';
-                                throw e;
+                                this.captureException(e, 'Failed to swipe');
                             });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_REBOOT: {
                         device.runShellCommandAdbKit('reboot').catch((e) => {
-                            e.ramiel_message = 'Failed to reboot';
-                            throw e;
+                            this.captureException(e, 'Failed to reboot');
                         });
                         return;
                     }
@@ -342,8 +341,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 return;
                             })
                             .catch((e) => {
-                                e.ramiel_message = 'Failed to termination';
-                                throw e;
+                                this.captureException(e, 'Failed to termination');
                             });
                         return;
                     }
@@ -351,8 +349,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         const bb = event.data.slice(6);
                         const appKey = bb.toString();
                         device.runShellCommandAdbKit(`pm uninstall -k --user 0 ${appKey}`).catch((e) => {
-                            e.ramiel_message = `Failed to uninstall apk: ${appKey}`;
-                            throw e;
+                            this.captureException(e, `Failed to uninstall apk: ${appKey}`);
                         });
                         return;
                     }
@@ -361,9 +358,57 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         const aa = bb.toString();
                         const cc = `monkey -p '${aa}' -c android.intent.category.LAUNCHER 1`;
                         device.runShellCommandAdbKit(cc).catch((e) => {
-                            e.ramiel_message = `Failed to uninstall apk: ${aa}`;
-                            throw e;
+                            this.captureException(e, `Failed to uninstall apk: ${aa}`);
                         });
+                        return;
+                    }
+                    case ControlMessage.TYPE_ADB_SEND_TEXT: {
+                        const bb = event.data.slice(6);
+                        const text = bb.toString();
+                        const kk = 'com.android.adbkeyboard/.AdbIME';
+
+                        let cc = 'ime list -a -s';
+                        device
+                            .runShellCommandAdbKit(cc)
+                            .then((rr) => {
+                                const tt = /com.android.adbkeyboard\/.AdbIME/;
+                                if (!tt.test(rr)) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
+
+                                cc = `ime enable ${kk}`;
+                                return device.runShellCommandAdbKit(cc);
+                            })
+                            .then((rr) => {
+                                const tt = /enabled/;
+                                if (!tt.test(rr)) throw Error('Failed to enable ime');
+
+                                cc = `ime set ${kk}`;
+                                return device.runShellCommandAdbKit(cc);
+                            })
+                            .then((rr) => {
+                                const tt = /selected/;
+                                if (!tt.test(rr)) throw Error('Failed to set ime');
+
+                                return Utils.sleep(1000);
+                            })
+                            .then(() => {
+                                cc = `am broadcast -a ADB_INPUT_TEXT --es msg '${text}'`;
+                                return device.runShellCommandAdbKit(cc);
+                            })
+                            .then((rr) => {
+                                const tt = /Broadcast completed/;
+                                if (!tt.test(rr)) throw Error('Failed to send text');
+                                return;
+                            })
+                            .catch((ee) => {
+                                this.captureException(ee, `Failed to send text: ${ee.message}`);
+                            })
+                            .finally(() => {
+                                if (!this.defaultIME) cc = 'ime reset';
+                                else cc = `ime set ${this.defaultIME}`;
+                                return device.runShellCommandAdbKit(cc).catch((ee) => {
+                                    this.captureException(ee, 'Failed to set default ime');
+                                });
+                            });
                         return;
                     }
                 }
@@ -371,16 +416,20 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                 this.lastHeartbeat = Date.now();
             }
         } catch (e) {
-            this.logger.error(e);
-            Sentry.captureException(e, (scope) => {
-                scope.setTag('ramiel_device_type', 'Android');
-                scope.setTag('ramiel_device_id', this.udid);
-                scope.setTag('ramiel_message', e.ramiel_message);
-                scope.setExtra('ramiel_stack', e.stack);
-                return scope;
-            });
+            this.captureException(e, e.ramiel_message || 'Failed to handle message');
         }
         super.onSocketMessage(event);
+    }
+
+    private captureException(e: Error, message: string): void {
+        this.logger.error(e);
+        Sentry.captureException(e, (scope) => {
+            scope.setTag('ramiel_device_type', 'Android');
+            scope.setTag('ramiel_device_id', this.udid);
+            scope.setTag('ramiel_message', message || e.message);
+            scope.setExtra('ramiel_stack', e.stack);
+            return scope;
+        });
     }
 
     private getDevice(): Device | null {
@@ -405,6 +454,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             return;
         }
 
+        const cmdGetIME = 'settings get secure default_input_method';
         const cmdMenu = `input keyevent ${KeyEvent.KEYCODE_MENU}`;
         const cmdHome = `input keyevent ${KeyEvent.KEYCODE_HOME}`;
         const cmdAppStop =
@@ -412,7 +462,11 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
 
         return device
-            .runShellCommandAdbKit(cmdMenu)
+            .runShellCommandAdbKit(cmdGetIME)
+            .then((output) => {
+                this.defaultIME = output.trim();
+                return device.runShellCommandAdbKit(cmdMenu);
+            })
             .then((output) => {
                 this.logger.info(output ? output : `success to send 1st KEYCODE_MENU: ${cmdMenu}`);
                 return device.runShellCommandAdbKit(cmdMenu);
@@ -474,20 +528,25 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             return;
         }
 
+        const cmdSetIME = this.defaultIME ? `ime set ${this.defaultIME}` : 'ime reset';
         const cmdPower = `input keyevent ${KeyEvent.KEYCODE_POWER}`;
         const cmdAppStop =
             'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
 
         new Promise((resolve) => setTimeout(resolve, 3000))
-            .then((output) => {
-                this.logger.info(output ? output : `success to run a command: ${cmdPower}`);
-                return device.runShellCommandAdbKit(cmdAppStop);
-            })
             .then(() => {
-                return device.runShellCommandAdbKit(cmdPower);
+                return device.runShellCommandAdbKit(cmdSetIME);
+            })
+            .then((output) => {
+                this.logger.info(output ? output : `success to set default ime: ${cmdSetIME}`);
+                return device.runShellCommandAdbKit(cmdAppStop);
             })
             .then((output) => {
                 this.logger.info(output ? output : `success to stop all of running apps`);
+                return device.runShellCommandAdbKit(cmdPower);
+            })
+            .then((output) => {
+                this.logger.info(output ? output : `success to run a command: ${cmdPower}`);
             })
             .catch((e) => {
                 this.logger.error(e);
