@@ -16,6 +16,7 @@ import { ControlMessage } from '../../controlMessage/ControlMessage';
 import { KeyCodeControlMessage } from '../../controlMessage/KeyCodeControlMessage';
 import { Optional, ToolBoxElement } from '../../toolbox/ToolBoxElement';
 import { StreamClientScrcpy } from '../client/StreamClientScrcpy';
+import Util from '../../Util';
 
 const BUTTONS = [
     {
@@ -154,11 +155,13 @@ export class DroidToolBox2 {
                         break;
                     }
                     case 'SendText': {
+                        Util.lockKeyboard();
                         const text = prompt('텍스트를 입력해 주세요');
                         if (!text) {
                             break;
                         }
                         client.sendMessage(CommandControlMessage.createAdbSendTextCommand(text));
+                        Util.unlockKeyboard();
                         break;
                     }
                     case 'SwipeUp': {

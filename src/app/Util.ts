@@ -179,4 +179,18 @@ export default class Util {
         // Use our detect's results. passive applied if supported, capture will be false either way.
         // elem.addEventListener('touchstart', fn, supportsPassive ? { passive: true } : false);
     }
+
+    private static keyboardLock: boolean = false;
+    public static lockKeyboard(): void {
+        if (Util.keyboardLock) {
+            return;
+        }
+        Util.keyboardLock = true;
+    }
+    public static unlockKeyboard(): void {
+        Util.keyboardLock = false;
+    }
+    public static isKeyboardLocked(): boolean {
+        return Util.keyboardLock;
+    }
 }

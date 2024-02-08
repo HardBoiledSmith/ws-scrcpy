@@ -23,6 +23,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
     private userAgent = '';
     private defaultIME = '';
     private apiSessionCreated = false;
+    private keyboardLock = false;
     private logger: Logger;
     private lastHeartbeat: number = Date.now();
     private readonly heartbeatTimer: NodeJS.Timeout;
@@ -249,7 +250,9 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
     protected onSocketMessage(event: WS.MessageEvent): void {
         try {
             const [type, value] = event.data;
-            if (type === ControlMessage.TYPE_ADB_CONTROL) {
+            if (type === ControlMessage.TYPE_KEYCODE && this.keyboardLock) {
+                return;
+            } else if (type === ControlMessage.TYPE_ADB_CONTROL) {
                 const device = this.getDevice();
                 if (!device) {
                     return;
@@ -371,6 +374,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         device
                             .runShellCommandAdbKit(cc)
                             .then((rr) => {
+                                this.keyboardLock = true;
                                 const tt = /com.android.adbkeyboard\/.AdbIME/;
                                 if (!tt.test(rr)) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
 
@@ -403,6 +407,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 this.captureException(ee, `Failed to send text: ${ee.message}`);
                             })
                             .finally(() => {
+                                this.keyboardLock = false;
                                 if (!this.defaultIME) cc = 'ime reset';
                                 else cc = `ime set ${this.defaultIME}`;
                                 return device.runShellCommandAdbKit(cc).catch((ee) => {

@@ -3,6 +3,7 @@ import KeyEvent from './android/KeyEvent';
 import { KeyToCodeMap } from './KeyToCodeMap';
 // TODO HBsmith
 import { WindowsKeyCodeToKey } from './WindowsKeyCodeToKey';
+import Util from '../Util';
 //
 
 export interface KeyEventListener {
@@ -15,6 +16,7 @@ export class KeyInputHandler {
     private static handler = (e: Event): void => {
         const event = e as KeyboardEvent;
         // TODO HBsmith
+        if (Util.isKeyboardLocked()) return;
         let keyCode = KeyToCodeMap.get(event.code);
         if (!keyCode) {
             // noinspection JSDeprecatedSymbols
