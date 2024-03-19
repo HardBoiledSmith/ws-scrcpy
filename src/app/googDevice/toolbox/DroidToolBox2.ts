@@ -4,6 +4,7 @@ import BtnBackPng from '../../../public/images/buttons/btn-back.png';
 import BtnDoubleUp from '../../../public/images/buttons/btn-double-up.png';
 import BtnDoubleDown from '../../../public/images/buttons/btn-double-down.png';
 import BtnHomePng from '../../../public/images/buttons/btn-home.png';
+import BtnKeyboard from '../../../public/images/buttons/btn-keyboard.png';
 import BtnLaunch from '../../../public/images/buttons/btn-launch.png';
 import BtnLock from '../../../public/images/buttons/btn-lock.png';
 import BtnReboot from '../../../public/images/buttons/btn-reboot.png';
@@ -81,6 +82,16 @@ const BUTTONS = [
     {
         title: 'RemoveApp',
         icon: BtnRemove,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'PrepareSendText',
+        icon: BtnKeyboard,
+        type: 'CommandControlMessage',
+    },
+    {
+        title: 'ResetKeyboard',
+        icon: BtnKeyboard,
         type: 'CommandControlMessage',
     },
 ];
@@ -207,6 +218,20 @@ export class DroidToolBox2 {
                             break;
                         }
                         client.sendMessage(CommandControlMessage.createAdbLaunchAppCommand(appKey));
+                        break;
+                    }
+                    case 'PrepareSendText': {
+                        const event = CommandControlMessage.createAdbControlCommand(
+                            ControlMessage.TYPE_ADB_PREPARE_SEND_TEXT,
+                        );
+                        client.sendMessage(event);
+                        break;
+                    }
+                    case 'ResetKeyboard': {
+                        const event = CommandControlMessage.createAdbControlCommand(
+                            ControlMessage.TYPE_ADB_RESET_KEYBOARD,
+                        );
+                        client.sendMessage(event);
                         break;
                     }
                 }

@@ -411,6 +411,43 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                             });
                         return;
                     }
+                    case ControlMessage.TYPE_ADB_PREPARE_SEND_TEXT: {
+                        const kk = 'com.android.adbkeyboard/.AdbIME';
+                        device
+                            .runShellCommandAdbKit('ime list -a -s')
+                            .then((rr) => {
+                                const tt = /com.android.adbkeyboard\/.AdbIME/;
+                                if (!tt.test(rr)) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
+
+                                return device.runShellCommandAdbKit(`ime enable ${kk}`);
+                            })
+                            .then((rr) => {
+                                const tt = /enabled/;
+                                if (!tt.test(rr)) throw Error('Failed to enable ime');
+
+                                return device.runShellCommandAdbKit(`ime set ${kk}`);
+                            })
+                            .then((rr) => {
+                                const tt = /selected/;
+                                if (!tt.test(rr)) throw Error('Failed to set ime');
+
+                                return Utils.sleep(1000);
+                            })
+                            .catch((ee) => {
+                                this.captureException(ee, 'Failed to prepare sendText');
+                            });
+                        return;
+                    }
+                    case ControlMessage.TYPE_ADB_RESET_KEYBOARD: {
+                        let cc;
+                        if (!this.defaultIME) cc = 'ime reset';
+                        else cc = `ime set ${this.defaultIME}`;
+
+                        device.runShellCommandAdbKit(cc).catch((ee) => {
+                            this.captureException(ee, 'Failed to reset default ime');
+                        });
+                        return;
+                    }
                 }
             } else if (type === ControlMessage.TYPE_HEARTBEAT) {
                 this.lastHeartbeat = Date.now();

@@ -1,4 +1,4 @@
-import { ControlMessage } from './ControlMessage';
+import {ControlMessage} from './ControlMessage';
 import VideoSettings from '../VideoSettings';
 import Util from '../Util';
 
@@ -73,7 +73,7 @@ export class CommandControlMessage extends ControlMessage {
     }
 
     public static createPushFileCommand(params: FilePushParams): CommandControlMessage {
-        const { id, fileName, fileSize, chunk, state } = params;
+        const {id, fileName, fileSize, chunk, state} = params;
 
         if (state === FilePushState.START) {
             return this.createPushFileStartCommand(id, fileName as string, fileSize as number);
@@ -190,7 +190,7 @@ export class CommandControlMessage extends ControlMessage {
             offset += 2;
             fileName = Util.utf8ByteArrayToString(buffer.slice(offset, offset + textLength));
         }
-        return { id, state, chunk, fileName, fileSize };
+        return {id, state, chunk, fileName, fileSize};
     }
 
     // TODO: HBsmith
@@ -275,6 +275,7 @@ export class CommandControlMessage extends ControlMessage {
         return event;
     }
 
+
     public static createHeartbeatCommand(): CommandControlMessage {
         const event = new CommandControlMessage(ControlMessage.TYPE_HEARTBEAT);
         const buffer = new Buffer(1 + 1);
@@ -283,6 +284,7 @@ export class CommandControlMessage extends ControlMessage {
         event.buffer = buffer;
         return event;
     }
+
     //
 
     private buffer?: Buffer;
