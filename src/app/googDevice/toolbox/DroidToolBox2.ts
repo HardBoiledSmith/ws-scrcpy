@@ -9,6 +9,7 @@ import BtnLaunch from '../../../public/images/buttons/btn-launch.png';
 import BtnLock from '../../../public/images/buttons/btn-lock.png';
 import BtnReboot from '../../../public/images/buttons/btn-reboot.png';
 import BtnRemove from '../../../public/images/buttons/btn-remove.png';
+import BtnReset from '../../../public/images/buttons/btn-reset.png';
 import BtnRotatePng from '../../../public/images/buttons/btn-rotate.png';
 import BtnSendText from '../../../public/images/buttons/btn-send-text.png';
 import BtnTerminateAppPng from '../../../public/images/buttons/btn-terminate-app.png';
@@ -91,7 +92,7 @@ const BUTTONS = [
     },
     {
         title: 'ResetKeyboard',
-        icon: BtnKeyboard,
+        icon: BtnReset,
         type: 'CommandControlMessage',
     },
 ];
