@@ -170,6 +170,10 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                         res.status(403).send('FORBIDDEN');
                         return;
                     }
+                    if (dd.data.device_ip) {
+                        res.status(406).send('Not Acceptable');
+                        return;
+                    }
                 }
             } catch (e) {
                 res.status(400).send('BAD REQUEST');
