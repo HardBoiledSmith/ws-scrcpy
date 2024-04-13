@@ -92,17 +92,25 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                         res.status(401).send('UNAUTHORIZED');
                         return;
                     }
+                    let dd;
                     try {
-                        await axios.get(`${Config.getInstance().getRamielApiServerEndpoint()}/real-devices/${udid}/`, {
-                            headers: { Authorization: `Bearer ${accessToken}` },
-                            params: { team_name: teamName },
-                        });
+                        dd = await axios.get(
+                            `${Config.getInstance().getRamielApiServerEndpoint()}/real-devices/${udid}/`,
+                            {
+                                headers: { Authorization: `Bearer ${accessToken}` },
+                                params: { team_name: teamName },
+                            },
+                        );
                     } catch (e) {
                         if (e.response) {
                             res.status(401).send('UNAUTHORIZED');
                         } else {
                             res.status(503).send('api server is not responding');
                         }
+                        return;
+                    }
+                    if (dd.data.device_ip) {
+                        res.status(406).send('Not Acceptable');
                         return;
                     }
                 } else {
@@ -168,6 +176,10 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                     );
                     if (!ee) {
                         res.status(403).send('FORBIDDEN');
+                        return;
+                    }
+                    if (dd.data.device_ip) {
+                        res.status(406).send('Not Acceptable');
                         return;
                     }
                 }
