@@ -179,12 +179,12 @@ export class DroidToolBox2 {
                         );
 
                         // @ts-ignore
-                        window.isScrolling = function (): boolean {
+                        window.isWaitingForUse = function (): boolean {
                             return true;
                         };
                         setTimeout(() => {
                             // @ts-ignore
-                            window.isScrolling = function (): boolean {
+                            window.isWaitingForUse = function (): boolean {
                                 return false;
                             };
                         }, 3000);
@@ -198,12 +198,12 @@ export class DroidToolBox2 {
                         );
 
                         // @ts-ignore
-                        window.isScrolling = function (): boolean {
+                        window.isWaitingForUse = function (): boolean {
                             return true;
                         };
                         setTimeout(() => {
                             // @ts-ignore
-                            window.isScrolling = function (): boolean {
+                            window.isWaitingForUse = function (): boolean {
                                 return false;
                             };
                         }, 3000);

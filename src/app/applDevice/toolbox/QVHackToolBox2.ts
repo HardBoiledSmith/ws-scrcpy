@@ -164,12 +164,12 @@ export class QVHackToolBox2 {
                         }
                         if (item.type === 'swipeUp' || item.type === 'swipeDown') {
                             // @ts-ignore
-                            window.isScrolling = function (): boolean {
+                            window.isWaitingForUse = function (): boolean {
                                 return true;
                             };
                             setTimeout(() => {
                                 // @ts-ignore
-                                window.isScrolling = function (): boolean {
+                                window.isWaitingForUse = function (): boolean {
                                     return false;
                                 };
                             }, 4000);
