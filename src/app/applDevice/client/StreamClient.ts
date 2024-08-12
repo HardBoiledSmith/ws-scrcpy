@@ -227,6 +227,10 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
                 }
                 break;
             case WdaStatus.SET_UP:
+                // @ts-ignore
+                window.isReadyToUse = function (): boolean {
+                    return true;
+                };
             case WdaStatus.SET_UP_SCREEN_ON:
             case WdaStatus.END_SET_UP:
                 this.logWdaStatus(message);

@@ -491,6 +491,12 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             return;
         }
 
+        this.sendMessage({
+            id: -1,
+            type: 'set-up-test',
+            data: '',
+        });
+
         const cmdGetIME = 'settings get secure default_input_method';
         const cmdMenu = `input keyevent ${KeyEvent.KEYCODE_MENU}`;
         const cmdHome = `input keyevent ${KeyEvent.KEYCODE_HOME}`;
