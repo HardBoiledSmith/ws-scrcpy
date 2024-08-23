@@ -167,13 +167,6 @@ export class QVHackToolBox2 {
                             window.isScrolling = function (): boolean {
                                 return true;
                             };
-                            setTimeout(() => {
-                                // @ts-ignore
-                                window.isScrolling = function (): boolean {
-                                    return false;
-                                };
-                            }, 4000);
-
                         }
                         const { name } = element.optional;
                         wdaConnection.pressCustomButton(name);

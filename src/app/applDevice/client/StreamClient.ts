@@ -16,6 +16,7 @@ import { DeviceTracker } from './DeviceTracker';
 import { WdaStatus } from '../../../common/WdaStatus';
 import { MessageRunWdaResponse } from '../../../types/MessageRunWdaResponse';
 import { QVHackToolBox2 } from '../toolbox/QVHackToolBox2';
+import {WDAMethod} from "../../../common/WDAMethod";
 
 const WAIT_CLASS = 'wait';
 const TAG = 'StreamClient';
@@ -201,9 +202,16 @@ export abstract class StreamClient<T extends ParamsStream> extends BaseClient<T,
             case WdaStatus.STARTING:
             case WdaStatus.STARTED:
             case WdaStatus.IN_ACTION:
-            case WdaStatus.END_ACTION:
+            case WdaStatus.END_ACTION: {
+                if (data.method && data.method == WDAMethod.SCROLL) {
+                    // @ts-ignore
+                    window.isScrolling = function (): boolean {
+                        return false;
+                    };
+                }
                 this.logWdaStatus(message);
                 break;
+            }
             // TODO: HBsmith
             case WdaStatus.STOPPED:
             case WdaStatus.ERROR:
