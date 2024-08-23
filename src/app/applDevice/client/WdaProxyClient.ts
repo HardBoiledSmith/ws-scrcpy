@@ -319,6 +319,12 @@ export class WdaProxyClient
         if (!this.screenInfo) {
             return;
         }
+        // TODO: HBsmith
+        // @ts-ignore
+        window.isScrolling = function (): boolean {
+            return true;
+        };
+        //
         const wdaScreen = this.screenWidth || (await this.getScreenWidth());
         const fromPoint = WdaProxyClient.calculatePhysicalPoint(this.screenInfo, wdaScreen, from);
         const toPoint = WdaProxyClient.calculatePhysicalPoint(this.screenInfo, wdaScreen, to);
