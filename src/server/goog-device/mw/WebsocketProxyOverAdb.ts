@@ -365,14 +365,14 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     case ControlMessage.TYPE_ADB_SEND_TEXT: {
                         const bb = event.data.slice(6);
                         const text = bb.toString();
-                        const kk = 'com.android.adbkeyboard/.AdbIME';
+                        const kk = 'io.hbsmith.bardiel/.AdbIME';
 
                         let cc = 'ime list -a -s';
                         device
                             .runShellCommandAdbKit(cc)
                             .then((rr) => {
-                                const tt = /com.android.adbkeyboard\/.AdbIME/;
-                                if (!tt.test(rr)) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
+                                const tt = /io.hbsmith.bardiel\/.AdbIME/;
+                                if (!tt.test(rr)) throw Error('Failed to get ime: io.hbsmith.bardiel.AdbIME');
 
                                 cc = `ime enable ${kk}`;
                                 return device.runShellCommandAdbKit(cc);
@@ -412,12 +412,12 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         return;
                     }
                     case ControlMessage.TYPE_ADB_PREPARE_SEND_TEXT: {
-                        const kk = 'com.android.adbkeyboard/.AdbIME';
+                        const kk = 'io.hbsmith.bardiel/.AdbIME';
                         device
                             .runShellCommandAdbKit('ime list -a -s')
                             .then((rr) => {
-                                const tt = /com.android.adbkeyboard\/.AdbIME/;
-                                if (!tt.test(rr)) throw Error('Failed to get ime: com.android.adbkeyboard.AdbIME');
+                                const tt = /io.hbsmith.bardiel\/.AdbIME/;
+                                if (!tt.test(rr)) throw Error('Failed to get ime: io.hbsmith.bardiel.AdbIME');
 
                                 return device.runShellCommandAdbKit(`ime enable ${kk}`);
                             })
