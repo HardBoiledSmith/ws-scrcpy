@@ -232,8 +232,13 @@ export class StreamClientScrcpy
         if (json.type === 'git-info') {
             const gitHashText = document.getElementById('control-footer-hash-name-text');
             if (gitHashText) {
-                gitHashText.textContent = json.data
+                gitHashText.textContent = json.data;
             }
+        } else if (json.type === 'set-up-test') {
+            // @ts-ignore
+            window.isReadyToUse = function () {
+                return true;
+            };
         }
     };
     //
