@@ -16,7 +16,14 @@ import * as Sentry from '@sentry/node';
 const MJPEG_SERVER_PORT = 9100;
 
 export interface WdaRunnerEvents {
-    'status-change': { status: WdaStatus; text?: string; code?: number; detail?: string; error?: string };
+    'status-change': {
+        status: WdaStatus;
+        text?: string;
+        code?: number;
+        detail?: string;
+        error?: string;
+        method?: string;
+    };
     error: Error;
 }
 
@@ -32,7 +39,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
     private appKey: string;
     private logger: Logger;
 
-    private wdaEvents: Array<unknown>;
+    private wdaEvents: Array<WDAEvent>;
     private wdaEventInAction: boolean;
     private wdaEventTimer: NodeJS.Timeout | undefined;
     private wdaProcessId: number | undefined;
@@ -204,62 +211,74 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 return WdaRunner.getScreenWidth(this.udid, driver);
             case WDAMethod.CLICK:
                 const { x, y } = args;
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info(`[WDA EVENT] CLICK - x:${x}, y:${y}`);
-                    return driver.performTouch([{ action: 'tap', options: { x, y } }]);
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info(`[WDA EVENT] CLICK - x:${x}, y:${y}`);
+                        return driver.performTouch([{ action: 'tap', options: { x, y } }]);
+                    }),
+                );
                 return;
             case WDAMethod.PRESS_BUTTON:
                 const name = args.name;
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info(`[WDA EVENT] PRESS_BUTTON: ${name}`);
-                    return driver.mobilePressButton({ name: name });
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info(`[WDA EVENT] PRESS_BUTTON: ${name}`);
+                        return driver.mobilePressButton({ name: name });
+                    }),
+                );
                 return;
             case WDAMethod.SCROLL:
                 const { from, to, holdAtStart } = args;
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info(
-                        `[WDA EVENT] SCROLL: from(${from.x}, ${from.y}), to(${to.x}, ${to.y}), ${holdAtStart}`,
-                    );
-                    if (holdAtStart) {
-                        return driver.mobileDragFromToForDuration({
-                            duration: 0.5,
-                            fromX: from.x,
-                            fromY: from.y,
-                            toX: to.x,
-                            toY: to.y,
-                        });
-                    }
-                    return driver.performTouch([
-                        { action: 'press', options: { x: from.x, y: from.y } },
-                        { action: 'wait', options: { ms: 500 } },
-                        { action: 'moveTo', options: { x: to.x, y: to.y } },
-                        { action: 'release', options: {} },
-                    ]);
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info(
+                            `[WDA EVENT] SCROLL: from(${from.x}, ${from.y}), to(${to.x}, ${to.y}), ${holdAtStart}`,
+                        );
+                        if (holdAtStart) {
+                            return driver.mobileDragFromToForDuration({
+                                duration: 0.5,
+                                fromX: from.x,
+                                fromY: from.y,
+                                toX: to.x,
+                                toY: to.y,
+                            });
+                        }
+                        return driver.performTouch([
+                            { action: 'press', options: { x: from.x, y: from.y } },
+                            { action: 'wait', options: { ms: 500 } },
+                            { action: 'moveTo', options: { x: to.x, y: to.y } },
+                            { action: 'release', options: {} },
+                        ]);
+                    }),
+                );
                 return;
             case WDAMethod.APPIUM_SETTINGS:
                 return driver.updateSettings(args.options);
             case WDAMethod.SEND_KEYS:
                 const keys = args.keys;
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info(`[WDA EVENT] SEND_KEYS - ${keys}`);
-                    return driver.keys(keys);
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info(`[WDA EVENT] SEND_KEYS - ${keys}`);
+                        return driver.keys(keys);
+                    }),
+                );
                 return;
             // TODO: HBsmith
             case WDAMethod.LOCK:
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info('[WDA EVENT] LOCK');
-                    return driver.lock();
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info('[WDA EVENT] LOCK');
+                        return driver.lock();
+                    }),
+                );
                 return;
             case WDAMethod.UNLOCK:
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info('[WDA EVENT] UNLOCK');
-                    return driver.unlock();
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info('[WDA EVENT] UNLOCK');
+                        return driver.unlock();
+                    }),
+                );
                 return;
             case WDAMethod.TERMINATE_APP:
                 return driver.mobileGetActiveAppInfo().then((appInfo) => {
@@ -267,36 +286,44 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                     if (bundleId === 'com.apple.springboard') {
                         return;
                     }
-                    this.wdaEvents.push((driver: XCUITestDriver) => {
-                        this.logger.info(`[WDA EVENT] TERMINATE_APP - bundleId:${bundleId}`);
-                        return driver.terminateApp(bundleId);
-                    });
+                    this.wdaEvents.push(
+                        new WDAEvent(method, (driver: XCUITestDriver) => {
+                            this.logger.info(`[WDA EVENT] TERMINATE_APP - bundleId:${bundleId}`);
+                            return driver.terminateApp(bundleId);
+                        }),
+                    );
                     return;
                 });
             case WDAMethod.TAP_LONG:
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    args.duration = 1.0;
-                    this.logger.info(`[WDA EVENT] TAP_LONG - x:${args.x}, y:${args.y}, duration:${args.duration}`);
-                    return driver.mobileTouchAndHold(args);
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        args.duration = 1.0;
+                        this.logger.info(`[WDA EVENT] TAP_LONG - x:${args.x}, y:${args.y}, duration:${args.duration}`);
+                        return driver.mobileTouchAndHold(args);
+                    }),
+                );
                 return;
             case WDAMethod.REBOOT:
                 Utils.rebootIOSDevice(this.udid);
                 return;
             case WDAMethod.REMOVE_APP: {
                 const ii = args.bundleId;
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info(`[WDA EVENT] REMOVE_APP - bundleId:${ii}`);
-                    return driver.removeApp(ii);
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info(`[WDA EVENT] REMOVE_APP - bundleId:${ii}`);
+                        return driver.removeApp(ii);
+                    }),
+                );
                 return;
             }
             case WDAMethod.LAUNCH_APP: {
                 const ii = args.bundleId;
-                this.wdaEvents.push((driver: XCUITestDriver) => {
-                    this.logger.info(`[WDA EVENT] LAUNCH_APP - bundleId:${ii}`);
-                    return driver.mobileLaunchApp({ bundleId: ii });
-                });
+                this.wdaEvents.push(
+                    new WDAEvent(method, (driver: XCUITestDriver) => {
+                        this.logger.info(`[WDA EVENT] LAUNCH_APP - bundleId:${ii}`);
+                        return driver.mobileLaunchApp({ bundleId: ii });
+                    }),
+                );
                 return;
             }
             //
@@ -474,7 +501,12 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
             if (!driver) {
                 return;
             }
-            const ev = this.wdaEvents.shift();
+            const ee = this.wdaEvents.shift();
+            if (!ee) {
+                return;
+            }
+            const method = ee.method;
+            const ev = ee.ev;
             if (!ev) {
                 return;
             }
@@ -486,7 +518,11 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                 try {
                     // eslint-disable-next-line @typescript-eslint/ban-types
                     await (<Function>ev)(driver);
-                    this.emit('status-change', { status: WdaStatus.END_ACTION, text: '제어 완료' });
+                    this.emit('status-change', {
+                        status: WdaStatus.END_ACTION,
+                        text: '제어 완료',
+                        method: method,
+                    });
                     break;
                 } catch (e) {
                     if (
@@ -506,6 +542,7 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
                         status: WdaStatus.END_ACTION,
                         text: '제어 실패',
                         error: e.stack || e.message || e,
+                        method: method,
                     });
                     break;
                 }
@@ -593,4 +630,16 @@ export class WdaRunner extends TypedEmitter<WdaRunnerEvents> {
         return this.deviceName;
     }
     //
+}
+
+class WDAEvent {
+    public method: string;
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    public ev: Function;
+
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    constructor(method: string, ev: Function) {
+        this.method = method;
+        this.ev = ev;
+    }
 }

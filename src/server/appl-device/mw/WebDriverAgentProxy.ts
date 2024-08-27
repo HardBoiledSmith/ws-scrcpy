@@ -100,8 +100,8 @@ export class WebDriverAgentProxy extends Mw {
                     return;
                 }
                 this.wda = WdaRunner.getInstance(udid);
-                this.wda.on('status-change', ({ status, code, text, detail }) => {
-                    this.onStatusChange(command, status, code, text, detail);
+                this.wda.on('status-change', ({ status, code, text, detail, method }) => {
+                    this.onStatusChange(command, status, code, text, detail, method);
                 });
                 if (this.wda.isStarted()) {
                     this.onStatusChange(command, WdaStatus.STARTED);
@@ -141,6 +141,7 @@ export class WebDriverAgentProxy extends Mw {
         code?: number,
         text?: string,
         detail?: string,
+        method?: string,
     ): void => {
         const id = command.getId();
         const udid = command.getUdid();
@@ -154,6 +155,7 @@ export class WebDriverAgentProxy extends Mw {
                 code,
                 text,
                 detail,
+                method,
             },
         };
         this.sendMessage(message);

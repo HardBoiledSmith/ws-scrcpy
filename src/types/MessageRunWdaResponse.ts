@@ -10,5 +10,6 @@ export interface MessageRunWdaResponse extends Message {
         text?: string;
         detail?: string;
         error?: string;
+        method?: string;
     };
 }

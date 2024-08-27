@@ -177,6 +177,18 @@ export class DroidToolBox2 {
                         const event = CommandControlMessage.createAdbControlCommand(
                             ControlMessage.TYPE_ADB_CONTROL_SWIPE_UP,
                         );
+
+                        // @ts-ignore
+                        window.isScrolling = function (): boolean {
+                            return true;
+                        };
+                        setTimeout(() => {
+                            // @ts-ignore
+                            window.isScrolling = function (): boolean {
+                                return false;
+                            };
+                        }, 3000);
+
                         client.sendMessage(event);
                         break;
                     }
@@ -184,6 +196,18 @@ export class DroidToolBox2 {
                         const event = CommandControlMessage.createAdbControlCommand(
                             ControlMessage.TYPE_ADB_CONTROL_SWIPE_DOWN,
                         );
+
+                        // @ts-ignore
+                        window.isScrolling = function (): boolean {
+                            return true;
+                        };
+                        setTimeout(() => {
+                            // @ts-ignore
+                            window.isScrolling = function (): boolean {
+                                return false;
+                            };
+                        }, 3000);
+
                         client.sendMessage(event);
                         break;
                     }

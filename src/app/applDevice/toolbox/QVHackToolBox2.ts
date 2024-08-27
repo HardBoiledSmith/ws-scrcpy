@@ -162,6 +162,12 @@ export class QVHackToolBox2 {
                         if (!element.optional?.name) {
                             return;
                         }
+                        if (item.type === 'swipeUp' || item.type === 'swipeDown') {
+                            // @ts-ignore
+                            window.isScrolling = function (): boolean {
+                                return true;
+                            };
+                        }
                         const { name } = element.optional;
                         wdaConnection.pressCustomButton(name);
                     });
