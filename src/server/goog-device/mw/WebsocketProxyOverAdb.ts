@@ -503,6 +503,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         const cmdAppStop =
             'for pp in $(dumpsys window a | grep "/" | cut -d "{" -f2 | cut -d "/" -f1 | cut -d " " -f2); do am force-stop "${pp}"; done';
         const cmdAppStart = `monkey -p '${this.appKey}' -c android.intent.category.LAUNCHER 1`;
+        const cmdAppSmsStart = 'am startservice -n sooft.smsf/.model.service.SFFirebaseMessagingService';
 
         return device
             .runShellCommandAdbKit(cmdGetIME)
@@ -529,6 +530,17 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             })
             .then((output) => {
                 this.logger.info(output ? output : `success to stop all of the apps: ${cmdAppStop}`);
+
+                // TODO: sooft.smsf is a optional app for sms relay
+                device
+                    .runShellCommandAdbKit(cmdAppSmsStart)
+                    .then(() => {
+                        this.logger.info('sooft.smsf service is started');
+                    })
+                    .catch(() => {
+                        this.logger.info('sooft.smsf service is skipped');
+                    });
+
                 if (this.appKey) {
                     return device.runShellCommandAdbKit(cmdAppStart).then((output) => {
                         this.logger.info(output ? output : `success to start the app: ${cmdAppStart}`);
