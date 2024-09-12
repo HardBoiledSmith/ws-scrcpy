@@ -227,6 +227,13 @@ export class WdaProxyClient
             case 'unlock':
                 return this.requestWebDriverAgent(WDAMethod.UNLOCK);
             case 'sendText':
+                const message: Message = {
+                    id: this.getNextId(),
+                    type: ControlCenterCommand.HEARTBEAT,
+                    data: {},
+                };
+                this.sendMessage(message).catch((e) => console.error(e));
+
                 const keys = prompt('텍스트를 입력해 주세요');
                 if (!keys) {
                     return;
@@ -264,6 +271,13 @@ export class WdaProxyClient
                 return this.requestWebDriverAgent(WDAMethod.LOCK);
             }
             case 'reboot': {
+                const message: Message = {
+                    id: this.getNextId(),
+                    type: ControlCenterCommand.HEARTBEAT,
+                    data: {},
+                };
+                this.sendMessage(message).catch((e) => console.error(e));
+
                 const cc = prompt('재부팅하시겠습니까? "확인"을 입력해 주세요');
                 if (cc !== '확인') {
                     return;
@@ -274,6 +288,13 @@ export class WdaProxyClient
             }
             case 'launchApp':
             case 'removeApp': {
+                const message: Message = {
+                    id: this.getNextId(),
+                    type: ControlCenterCommand.HEARTBEAT,
+                    data: {},
+                };
+                this.sendMessage(message).catch((e) => console.error(e));
+
                 const bundleId = prompt('앱키를 입력해주세요.');
                 if (!bundleId) {
                     return;
