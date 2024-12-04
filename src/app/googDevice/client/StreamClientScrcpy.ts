@@ -229,16 +229,29 @@ export class StreamClientScrcpy
 
     public onEventMessage = (ev: MessageEvent): void => {
         const json = JSON.parse(ev.data);
-        if (json.type === 'git-info') {
-            const gitHashText = document.getElementById('control-footer-hash-name-text');
-            if (gitHashText) {
-                gitHashText.textContent = json.data;
+        switch (json.type) {
+            case 'git-info': {
+                const tt = document.getElementById('control-footer-hash-name-text');
+                if (!tt) break;
+                tt.textContent = json.data;
+                break;
             }
-        } else if (json.type === 'set-up-test') {
-            // @ts-ignore
-            window.isReadyToUse = function () {
-                return true;
-            };
+            case 'set-up-test': {
+                // @ts-ignore
+                window.isReadyToUse = function () {
+                    return true;
+                };
+                const tt = document.getElementById('control-header-device-status-text');
+                if (!tt) break;
+                tt.textContent = json.data;
+                break;
+            }
+            case 'status': {
+                const tt = document.getElementById('control-header-device-status-text');
+                if (!tt) break;
+                tt.textContent = json.data;
+                break;
+            }
         }
     };
     //

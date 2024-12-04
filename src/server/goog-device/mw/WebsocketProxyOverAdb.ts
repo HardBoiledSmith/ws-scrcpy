@@ -494,7 +494,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
         this.sendMessage({
             id: -1,
             type: 'set-up-test',
-            data: '',
+            data: '장비 초기화 시작',
         });
 
         const cmdGetIME = 'settings get secure default_input_method';
@@ -550,6 +550,11 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
             })
             .then(() => {
                 this.logger.info('setup succeeded. ready to test.');
+                this.sendMessage({
+                    id: -1,
+                    type: 'status',
+                    data: '장비 초기화 완료',
+                });
             })
             .catch((e) => {
                 this.logger.error(e);
