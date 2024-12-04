@@ -257,6 +257,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
 
                 switch (value) {
                     case ControlMessage.TYPE_ADB_INSTALL_APK: {
+                        this.sendMessage({ id: -1, type: 'status', data: '앱 설치 시작' });
                         const bb = event.data.slice(6);
                         const fileName = bb.toString();
                         const pathToApk = `/data/local/tmp/${fileName}`;
@@ -275,6 +276,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                             .then((rr) => {
                                 if (rr === 'Success') {
                                     this.logger.info(`success to install test apk: ${fileName}`);
+                                    this.sendMessage({ id: -1, type: 'status', data: '앱 설치 완료' });
                                     return device.runShellCommandAdbKit(`rm -f '${pathToApk}'`);
                                 }
                                 return;
@@ -283,6 +285,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                     }
                     case ControlMessage.TYPE_ADB_CONTROL_SWIPE_DOWN:
                     case ControlMessage.TYPE_ADB_CONTROL_SWIPE_UP: {
+                        this.sendMessage({ id: -1, type: 'status', data: '스크롤 시작' });
                         let isLandscape = false;
                         device
                             .runShellCommandAdbKit('dumpsys window displays | grep mCurrentRotation | tail -1')
@@ -312,6 +315,7 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                     .runShellCommandAdbKit(`input swipe ${xx} ${y1} ${xx} ${y2} 2000`)
                                     .then(() => {
                                         this.logger.info(`Success to swipe: ${xx} ${y1} ${xx} ${y2} 2000`);
+                                        this.sendMessage({ id: -1, type: 'status', data: '스크롤 완료' });
                                     });
                             })
                             .catch((e) => {
@@ -320,12 +324,14 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                         return;
                     }
                     case ControlMessage.TYPE_ADB_REBOOT: {
+                        this.sendMessage({ id: -1, type: 'status', data: '재부팅 시작. 5분 뒤 재접속 바랍니다.' });
                         device.runShellCommandAdbKit('reboot').catch((e) => {
                             this.captureException(e, 'Failed to reboot');
                         });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_TERMINATE_APP: {
+                        this.sendMessage({ id: -1, type: 'status', data: '앱 종료 시작' });
                         device
                             .runShellCommandAdbKit("dumpsys window | grep -E 'mCurrentFocus'")
                             .then((rr) => {
@@ -340,29 +346,45 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                                 }
                                 return;
                             })
+                            .then(() => {
+                                this.sendMessage({ id: -1, type: 'status', data: '앱 종료 완료' });
+                            })
                             .catch((e) => {
                                 this.captureException(e, 'Failed to termination');
                             });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_UNINSTALL_APK: {
+                        this.sendMessage({ id: -1, type: 'status', data: '앱 삭제 시작' });
                         const bb = event.data.slice(6);
                         const appKey = bb.toString();
-                        device.runShellCommandAdbKit(`pm uninstall -k --user 0 ${appKey}`).catch((e) => {
-                            this.captureException(e, `Failed to uninstall apk: ${appKey}`);
-                        });
+                        device
+                            .runShellCommandAdbKit(`pm uninstall -k --user 0 ${appKey}`)
+                            .then(() => {
+                                this.sendMessage({ id: -1, type: 'status', data: '앱 삭제 완료' });
+                            })
+                            .catch((e) => {
+                                this.captureException(e, `Failed to uninstall apk: ${appKey}`);
+                            });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_LAUNCH_APK: {
+                        this.sendMessage({ id: -1, type: 'status', data: '앱 시작' });
                         const bb = event.data.slice(6);
                         const aa = bb.toString();
                         const cc = `monkey -p '${aa}' -c android.intent.category.LAUNCHER 1`;
-                        device.runShellCommandAdbKit(cc).catch((e) => {
-                            this.captureException(e, `Failed to uninstall apk: ${aa}`);
-                        });
+                        device
+                            .runShellCommandAdbKit(cc)
+                            .then(() => {
+                                this.sendMessage({ id: -1, type: 'status', data: '앱 시작 완료' });
+                            })
+                            .catch((e) => {
+                                this.captureException(e, `Failed to uninstall apk: ${aa}`);
+                            });
                         return;
                     }
                     case ControlMessage.TYPE_ADB_SEND_TEXT: {
+                        this.sendMessage({ id: -1, type: 'status', data: '문자열 전송 시작' });
                         const bb = event.data.slice(6);
                         const text = bb.toString();
                         const kk = 'io.hbsmith.bardiel/.AdbIME';
@@ -396,13 +418,17 @@ export class WebsocketProxyOverAdb extends WebsocketProxy {
                             })
                             .then((rr) => {
                                 const tt = /Broadcast completed/;
-                                if (!tt.test(rr)) throw Error('Failed to send text');
+                                if (!tt.test(rr)) {
+                                    this.sendMessage({ id: -1, type: 'status', data: '문자열 전송 실패' });
+                                    throw Error('Failed to send text');
+                                }
+                                this.sendMessage({ id: -1, type: 'status', data: '문자열 전송 성공' });
                                 return;
                             })
                             .catch((ee) => {
                                 this.captureException(ee, `Failed to send text: ${ee.message}`);
                             })
-                            .finally(() => {
+                            .finally(async () => {
                                 if (!this.defaultIME) cc = 'ime reset';
                                 else cc = `ime set ${this.defaultIME}`;
                                 return device.runShellCommandAdbKit(cc).catch((ee) => {
