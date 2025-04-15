@@ -247,6 +247,17 @@ export abstract class InteractionHandler {
         if (x < 0 || y < 0 || x > width || y > height) {
             invalid = true;
         }
+        // TODO: HBsmith
+        if ([MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP].includes(action)) {
+            const tt = document.getElementById('control-header-device-status-text');
+            if (tt) {
+                const xx = Math.trunc(x);
+                const yy = Math.trunc(y);
+                if (action === MotionEvent.ACTION_DOWN) tt.textContent = `클릭 시작: ${xx}, ${yy}`;
+                else if (action === MotionEvent.ACTION_UP) tt.textContent = `클릭 종료: ${xx}, ${yy}`;
+            }
+        }
+        //
         return {
             client: {
                 width: clientWidth,
