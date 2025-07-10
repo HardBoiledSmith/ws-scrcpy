@@ -87,6 +87,7 @@ body.shell {
 body.stream {
     /* TODO: HBsmith */
     background-color: black !important;
+    top: 0;
     /* */
     display:flex;
     flex-direction: row;
